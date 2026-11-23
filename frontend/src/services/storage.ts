@@ -1,4 +1,9 @@
-import { HISTORY_STORAGE_KEY, MAX_HISTORY_RECORDS } from '../features/lottery/constants';
+import { GAME_CONFIGS } from '../features/lottery/config';
+import {
+  HISTORY_STORAGE_KEY,
+  MAX_HISTORY_RECORDS,
+  MAX_TICKETS,
+} from '../features/lottery/constants';
 import type { GameId, HistoryRecord, SelectionMode, TicketNumbers } from '../features/lottery/types';
 
 /**
@@ -11,14 +16,38 @@ import type { GameId, HistoryRecord, SelectionMode, TicketNumbers } from '../fea
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-/** 校验号码集合的基本结构，避免损坏数据进入渲染层。 */
-const isTicketNumbers = (value: unknown): value is TicketNumbers => {
+/**
+ * 校验号码集合：区域键必须属于对应彩种，号码必须为范围内整数且不重复。
+ * 这样可拦截 NaN、超范围、未知区域等语义损坏的数据，避免渲染出垃圾内容。
+ */
+const isTicketNumbers = (value: unknown, gameId: GameId): value is TicketNumbers => {
   if (!isObject(value)) {
     return false;
   }
-  return Object.values(value).every(
-    (numbers) => Array.isArray(numbers) && numbers.every((item) => typeof item === 'number'),
-  );
+  const areas = GAME_CONFIGS[gameId].areas;
+  const keys = Object.keys(value);
+  if (keys.length === 0) {
+    return false;
+  }
+  return keys.every((key) => {
+    const area = areas.find((item) => item.key === key);
+    const numbers = value[key];
+    if (!area || !Array.isArray(numbers) || numbers.length === 0) {
+      return false;
+    }
+    const capacity = area.max - area.min + 1;
+    return (
+      numbers.length <= capacity &&
+      numbers.every(
+        (item) =>
+          typeof item === 'number' &&
+          Number.isInteger(item) &&
+          item >= area.min &&
+          item <= area.max,
+      ) &&
+      new Set(numbers).size === numbers.length
+    );
+  });
 };
 
 /** 校验单条历史记录结构。 */
@@ -28,36 +57,63 @@ const isHistoryRecord = (value: unknown): value is HistoryRecord => {
   }
   const gameIds: GameId[] = ['ssq', 'dlt'];
   const modes: SelectionMode[] = ['quick', 'multiple', 'banker'];
+  const gameId = value.gameId as GameId;
+
+  const combinationCount = value.combinationCount;
+  const createdAt = value.createdAt;
+  const amount = value.amount;
+
   return (
     typeof value.id === 'string' &&
-    gameIds.includes(value.gameId as GameId) &&
+    gameIds.includes(gameId) &&
     typeof value.gameName === 'string' &&
     modes.includes(value.mode as SelectionMode) &&
     Array.isArray(value.tickets) &&
-    value.tickets.every(isTicketNumbers) &&
-    typeof value.combinationCount === 'number' &&
-    typeof value.createdAt === 'number'
+    value.tickets.length > 0 &&
+    value.tickets.length <= MAX_TICKETS &&
+    value.tickets.every((ticket) => isTicketNumbers(ticket, gameId)) &&
+    typeof combinationCount === 'number' &&
+    Number.isInteger(combinationCount) &&
+    combinationCount > 0 &&
+    combinationCount <= MAX_TICKETS &&
+    typeof createdAt === 'number' &&
+    Number.isFinite(createdAt) &&
+    createdAt > 0 &&
+    (value.ticketsTruncated === undefined || typeof value.ticketsTruncated === 'boolean') &&
+    (amount === undefined || (typeof amount === 'number' && Number.isFinite(amount) && amount >= 0))
   );
 };
 
 /**
- * 获取可用的 localStorage。
- * 某些隐私模式或浏览器策略下访问会抛错，此时返回 null。
+ * 获取 localStorage。
+ * 隐私模式下访问属性本身可能抛错，此时返回 null。
  */
 const getStorage = (): Storage | null => {
   try {
-    const storage = window.localStorage;
-    const probeKey = '__lucky_picks_probe__';
-    storage.setItem(probeKey, '1');
-    storage.removeItem(probeKey);
-    return storage;
+    return window.localStorage;
   } catch {
     return null;
   }
 };
 
-/** 历史功能当前是否可用。 */
-export const isHistoryAvailable = (): boolean => getStorage() !== null;
+/**
+ * 历史功能当前是否可写。
+ * 用一次最小写入探测配额与只读策略；读操作不依赖该探测。
+ */
+export const isHistoryAvailable = (): boolean => {
+  const storage = getStorage();
+  if (!storage) {
+    return false;
+  }
+  try {
+    const probeKey = '__lucky_picks_probe__';
+    storage.setItem(probeKey, '1');
+    storage.removeItem(probeKey);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * 读取历史记录，按创建时间倒序，最多保留上限条数。
@@ -95,7 +151,7 @@ export const loadHistory = (): HistoryRecord[] => {
 
 /**
  * 覆盖写入历史记录。
- * @returns 是否写入成功；存储不可用时返回 false。
+ * @returns 是否写入成功；存储不可用或空间不足时返回 false。
  */
 export const saveHistory = (records: readonly HistoryRecord[]): boolean => {
   const storage = getStorage();
@@ -111,31 +167,4 @@ export const saveHistory = (records: readonly HistoryRecord[]): boolean => {
   } catch {
     return false;
   }
-};
-
-/**
- * 追加一条历史记录（新的在前），返回更新后的列表。
- * @param record 待保存记录
- */
-export const addHistory = (record: HistoryRecord): HistoryRecord[] => {
-  const current = loadHistory();
-  const next = [record, ...current].slice(0, MAX_HISTORY_RECORDS);
-  // 写入失败（存储不可用或超配额）时不误导调用方，返回原有列表
-  return saveHistory(next) ? next : current;
-};
-
-/**
- * 删除指定历史记录，返回更新后的列表。
- * @param id 记录标识
- */
-export const removeHistory = (id: string): HistoryRecord[] => {
-  const next = loadHistory().filter((record) => record.id !== id);
-  saveHistory(next);
-  return next;
-};
-
-/** 清空全部历史记录。 */
-export const clearHistory = (): HistoryRecord[] => {
-  saveHistory([]);
-  return [];
 };

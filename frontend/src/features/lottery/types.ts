@@ -72,6 +72,8 @@ export interface HistoryRecord {
   tickets: TicketNumbers[];
   /** 组合注数（复式的组合数或机选的注数）。 */
   combinationCount: number;
+  /** 保存时的参考金额快照（元），避免后续调价影响历史展示。 */
+  amount?: number;
   /** 创建时间戳（毫秒）。 */
   createdAt: number;
   /** 保存时是否因数量上限截断了号码（仅保存预览，组合注数仍为真实值）。 */

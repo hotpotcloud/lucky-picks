@@ -40,7 +40,7 @@ pnpm build      # build for production
 
 ## Deployment
 
-The production build is deployed to GitHub Pages by the workflow in `.github/workflows/deploy.yml`.
+The workflow in `.github/workflows/deploy.yml` runs lint, type checking, unit tests, and the production build on every pull request. Only pushes to `main` are deployed to GitHub Pages (Settings → Pages → Source: GitHub Actions).
 
 Live site: <https://hotpotcloud.github.io/lucky-picks/>
 
@@ -69,4 +69,4 @@ See `docs/features/FEAT-001-lottery-advisor/` for the artifacts of the first fea
 
 ## License
 
-MIT
+[MIT](./LICENSE)

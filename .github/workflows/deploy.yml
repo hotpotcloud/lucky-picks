@@ -1,23 +1,22 @@
-name: Deploy to GitHub Pages
+name: CI and Deploy
 
-# main 分支推送后自动执行门禁（lint / typecheck / test / build）并部署到 GitHub Pages
+# PR 与 main 推送都执行门禁；只有 main 推送才部署到 GitHub Pages。
 on:
+  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# 同一时间只保留一次部署，新的推送取消进行中的旧部署
+# 同一分支只保留一次运行，新提交取消旧运行
 concurrency:
-  group: pages
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,17 +52,19 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
 
   deploy:
-    needs: build
+    # 仅 main 分支的 push 部署；PR 与手动 dispatch 只跑门禁，避免误发布未评审代码
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

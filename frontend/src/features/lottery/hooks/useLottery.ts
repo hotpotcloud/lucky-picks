@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   MAX_HISTORY_RECORDS,
   MAX_HISTORY_TICKETS,
+  QUICK_PICK_MAX,
+  QUICK_PICK_MIN,
   TICKET_PRICE,
 } from '../constants';
 import { GAME_CONFIGS } from '../config';
@@ -45,6 +47,8 @@ export interface ActionResult {
   ok: boolean;
   /** 失败时的中文原因。 */
   error?: string;
+  /** 成功但需要提醒用户的信息，例如历史保存被截断。 */
+  warning?: string;
 }
 
 /** 胆拖状态：主区胆码与拖码。 */
@@ -93,6 +97,22 @@ export const useLottery = () => {
     [game, bankerState, selections],
   );
 
+  /** 机选参数校验：注数必须是 1–10 的整数。 */
+  const quickInfo = useMemo(() => {
+    const valid =
+      Number.isInteger(quickCount) &&
+      quickCount >= QUICK_PICK_MIN &&
+      quickCount <= QUICK_PICK_MAX;
+    return {
+      valid,
+      error: valid
+        ? undefined
+        : `机选注数必须是 ${QUICK_PICK_MIN}–${QUICK_PICK_MAX} 的整数`,
+      combinations: valid ? quickCount : 0,
+      amount: valid ? quickCount * TICKET_PRICE : 0,
+    };
+  }, [quickCount]);
+
   /** 当前模式的参数校验信息，用于展示注数与金额。 */
   const activeInfo = useMemo(() => {
     if (mode === 'multiple') {
@@ -101,8 +121,8 @@ export const useLottery = () => {
     if (mode === 'banker') {
       return bankerInfo;
     }
-    return { valid: true, combinations: quickCount, amount: quickCount * TICKET_PRICE };
-  }, [mode, multipleInfo, bankerInfo, quickCount]);
+    return quickInfo;
+  }, [mode, multipleInfo, bankerInfo, quickInfo]);
 
   /** 切换彩种：清空所有选择与结果，避免跨彩种脏数据。 */
   const selectGame = useCallback((id: GameId) => {
@@ -242,31 +262,48 @@ export const useLottery = () => {
       mode: result.mode,
       tickets: result.tickets.slice(0, MAX_HISTORY_TICKETS),
       combinationCount: result.combinations,
+      amount: result.amount,
       createdAt: Date.now(),
       ticketsTruncated,
     };
     const next = [record, ...history].slice(0, MAX_HISTORY_RECORDS);
     if (!saveHistory(next)) {
-      setHistoryAvailable(false);
+      // 写失败可能是临时配额问题，重新探测可写性，但不阻止用户继续重试
+      setHistoryAvailable(isHistoryAvailable());
       return { ok: false, error: '保存失败，本地存储不可用或空间不足' };
     }
     setHistory(next);
-    return { ok: true };
+    setHistoryAvailable(true);
+    return {
+      ok: true,
+      warning: ticketsTruncated
+        ? `已保存前 ${MAX_HISTORY_TICKETS} 注，完整结果请及时使用「复制」`
+        : undefined,
+    };
   }, [result, historyAvailable, game.id, game.name, history]);
 
-  /** 删除单条历史。 */
-  const deleteHistory = useCallback((id: string) => {
-    setHistory((previous) => {
-      const next = previous.filter((record) => record.id !== id);
-      saveHistory(next);
-      return next;
-    });
-  }, []);
+  /** 删除单条历史，写失败时保留原列表并返回错误。 */
+  const deleteHistory = useCallback(
+    (id: string): ActionResult => {
+      const next = history.filter((record) => record.id !== id);
+      if (!saveHistory(next)) {
+        setHistoryAvailable(isHistoryAvailable());
+        return { ok: false, error: '删除失败，本地存储不可用' };
+      }
+      setHistory(next);
+      return { ok: true };
+    },
+    [history],
+  );
 
-  /** 清空全部历史。 */
-  const clearAllHistory = useCallback(() => {
-    saveHistory([]);
+  /** 清空全部历史，写失败时不清空内存列表。 */
+  const clearAllHistory = useCallback((): ActionResult => {
+    if (!saveHistory([])) {
+      setHistoryAvailable(isHistoryAvailable());
+      return { ok: false, error: '清空失败，本地存储不可用' };
+    }
     setHistory([]);
+    return { ok: true };
   }, []);
 
   return {

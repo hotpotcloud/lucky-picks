@@ -98,12 +98,12 @@ body {
 /* 未选中的号码球显示为灰色 */
 .number-button:not(.is-selected) .lottery-ball {
   background: #f0f0f0;
-  color: #8c8c8c;
+  color: #595959;
 }
 
 /* 胆拖语义色：胆码金色，拖码蓝色 */
 .number-button.is-banker .lottery-ball {
-  background: #d48806;
+  background: #ad6800;
   color: #fff;
 }
 

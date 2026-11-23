@@ -15,7 +15,7 @@ import {
 import { GAME_CONFIGS } from './features/lottery/config';
 import { useLottery } from './features/lottery/hooks/useLottery';
 import { MODE_LABELS } from './features/lottery/labels';
-import { formatTicketText, formatTicketsText } from './features/lottery/format';
+import { formatAmount, formatTicketText, formatTicketsText } from './features/lottery/format';
 import type { HistoryRecord, SelectionMode } from './features/lottery/types';
 import GameSwitcher from './features/lottery/components/GameSwitcher';
 import QuickPickPanel from './features/lottery/components/QuickPickPanel';
@@ -59,13 +59,17 @@ const App = () => {
     }
   };
 
-  /** 保存当前结果到本地历史。 */
+  /** 保存当前结果到本地历史；被截断时用警告提示而不是静默成功。 */
   const handleSave = () => {
     const result = lottery.saveResult();
-    if (result.ok) {
-      message.success('已保存到本地历史');
-    } else {
+    if (!result.ok) {
       message.error(result.error);
+      return;
+    }
+    if (result.warning) {
+      message.warning(result.warning);
+    } else {
+      message.success('已保存到本地历史');
     }
   };
 
@@ -78,7 +82,11 @@ const App = () => {
         : formatTicketsText(game, record.tickets);
     try {
       await navigator.clipboard.writeText(text);
-      message.success('历史号码已复制');
+      if (record.ticketsTruncated) {
+        message.warning('该历史仅保存了部分号码，已复制已保存部分');
+      } else {
+        message.success('历史号码已复制');
+      }
     } catch {
       message.error('复制失败，请手动选择号码');
     }
@@ -119,7 +127,7 @@ const App = () => {
     );
   };
 
-  const generateDisabled = lottery.mode !== 'quick' && !lottery.activeInfo.valid;
+  const generateDisabled = !lottery.activeInfo.valid;
 
   return (
     <div className="app-shell">
@@ -150,6 +158,9 @@ const App = () => {
                 onChange={(next) => lottery.setMode(next as SelectionMode)}
               />
               {renderPanel()}
+              {lottery.mode === 'quick' && !lottery.activeInfo.valid && (
+                <Alert type="warning" showIcon message={lottery.activeInfo.error} />
+              )}
               <Button
                 type="primary"
                 size="large"
@@ -188,12 +199,13 @@ const App = () => {
                   <Tag color="blue">{lottery.game.name}</Tag>
                   <Tag>{MODE_LABELS[lottery.result.mode]}</Tag>
                   <Tag color="gold">共 {lottery.result.combinations} 注</Tag>
-                  <Tag color="gold">参考金额 {lottery.result.amount} 元</Tag>
+                  <Tag color="gold">参考金额 {formatAmount(lottery.result.amount)}</Tag>
                 </Space>
                 <TicketList
                   game={lottery.game}
                   tickets={lottery.result.tickets}
                   combinations={lottery.result.combinations}
+                  analyze={lottery.result.mode !== 'multiple'}
                 />
               </Space>
             ) : (
@@ -210,8 +222,12 @@ const App = () => {
           <Popconfirm
             title="清空全部历史记录？"
             onConfirm={() => {
-              lottery.clearAllHistory();
-              message.success('历史记录已清空');
+              const result = lottery.clearAllHistory();
+              if (result.ok) {
+                message.success('历史记录已清空');
+              } else {
+                message.error(result.error);
+              }
             }}
             okText="清空"
             cancelText="取消"
@@ -239,8 +255,12 @@ const App = () => {
             records={lottery.history}
             onCopy={handleCopyRecord}
             onDelete={(id) => {
-              lottery.deleteHistory(id);
-              message.success('记录已删除');
+              const result = lottery.deleteHistory(id);
+              if (result.ok) {
+                message.success('记录已删除');
+              } else {
+                message.error(result.error);
+              }
             }}
           />
         </Space>

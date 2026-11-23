@@ -1,3 +1,4 @@
+import { formatBall } from '../format';
 import type { BallArea } from '../types';
 import NumberBall from './NumberBall';
 
@@ -43,6 +44,9 @@ const NumberGrid = ({ area, selected, onToggle, statusOf }: NumberGridProps) => 
               .filter(Boolean)
               .join(' ')}
             aria-pressed={isSelected}
+            aria-label={`${area.label} ${formatBall(value)}${
+              status === 'banker' ? ' 胆码' : status === 'drag' ? ' 拖码' : ''
+            }`}
             onClick={() => onToggle(value)}
           >
             <NumberBall value={value} color={area.color} variant={variant} />

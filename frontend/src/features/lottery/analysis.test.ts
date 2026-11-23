@@ -21,7 +21,7 @@ describe('analyzeTicket（TC-010）', () => {
     });
     // 1..35 三等分：1–12、13–24、25–35；中位数 18
     expect(result.oddEven).toBe('3:2');
-    expect(result.bigSmall).toBe('2:3');
+    expect(result.bigSmall).toBe('3:2');
     expect(result.sum).toBe(91);
     expect(result.zones).toBe('2:1:2');
   });

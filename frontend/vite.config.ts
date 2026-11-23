@@ -15,9 +15,31 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          antd: ['antd', '@ant-design/icons'],
+        // 用函数按模块路径分包，确保 react/react-dom/scheduler 及其运行时
+        // 真正进入独立 chunk；antd 与 rc-* 组件库单独一份，便于长期缓存。
+        manualChunks: (id) => {
+          // 统一路径分隔符，避免 Windows 下反斜杠导致分包失效
+          const normalized = id.replace(/\\/g, '/');
+          const parts = normalized.split('/');
+          if (!parts.includes('node_modules')) {
+            return undefined;
+          }
+          if (
+            parts.includes('react') ||
+            parts.includes('react-dom') ||
+            parts.includes('scheduler')
+          ) {
+            return 'react';
+          }
+          if (
+            parts.includes('antd') ||
+            parts.includes('@ant-design') ||
+            parts.includes('@rc-component') ||
+            parts.some((part) => part.startsWith('rc-'))
+          ) {
+            return 'antd';
+          }
+          return 'vendor';
         },
       },
     },

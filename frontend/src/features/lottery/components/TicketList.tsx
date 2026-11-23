@@ -12,13 +12,15 @@ interface TicketListProps {
   tickets: readonly TicketNumbers[];
   /** 组合注数，用于提示是否被截断展示。 */
   combinations: number;
+  /** 是否展示主区分布分析；复式结果展示的是号码集合，不适用单注分析。 */
+  analyze?: boolean;
 }
 
 /**
  * 生成结果列表：逐注展示号码球与主区分布分析。
  * 注数较多时只渲染前 MAX_RENDERED_TICKETS 注，避免页面卡顿。
  */
-const TicketList = ({ game, tickets, combinations }: TicketListProps) => {
+const TicketList = ({ game, tickets, combinations, analyze = true }: TicketListProps) => {
   const visible = tickets.slice(0, MAX_RENDERED_TICKETS);
   const hiddenCount = tickets.length - visible.length;
 
@@ -44,12 +46,18 @@ const TicketList = ({ game, tickets, combinations }: TicketListProps) => {
                 );
               })}
             </div>
-            <Space size={4} wrap className="ticket-analysis">
-              <Tag>奇偶 {analysis.oddEven}</Tag>
-              <Tag>大小 {analysis.bigSmall}</Tag>
-              <Tag>和值 {analysis.sum}</Tag>
-              <Tag>三区 {analysis.zones}</Tag>
-            </Space>
+            {analyze ? (
+              <Space size={4} wrap className="ticket-analysis">
+                <Tag>奇偶 {analysis.oddEven}</Tag>
+                <Tag>大小 {analysis.bigSmall}</Tag>
+                <Tag>和值 {analysis.sum}</Tag>
+                <Tag>三区 {analysis.zones}</Tag>
+              </Space>
+            ) : (
+              <Typography.Text type="secondary" className="ticket-analysis">
+                复式号码集合，已展开为 {combinations} 注，不展示单注分析
+              </Typography.Text>
+            )}
           </div>
         );
       })}
@@ -58,7 +66,7 @@ const TicketList = ({ game, tickets, combinations }: TicketListProps) => {
         <Alert
           type="info"
           showIcon
-          message={`为保持页面流畅，仅展示前 ${MAX_RENDERED_TICKETS} 注，合计 ${combinations} 注。复制和保存仍包含完整结果。`}
+          message={`为保持页面流畅，仅展示前 ${MAX_RENDERED_TICKETS} 注，合计 ${combinations} 注。复制包含完整结果。`}
         />
       )}
     </Space>

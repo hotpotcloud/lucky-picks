@@ -1,6 +1,7 @@
 import { Button, Empty, List, Popconfirm, Space, Tag, Typography } from 'antd';
 import { GAME_CONFIGS } from '../config';
 import { TICKET_PRICE } from '../constants';
+import { formatAmount } from '../format';
 import { MODE_LABELS } from '../labels';
 import type { HistoryRecord } from '../types';
 import NumberBall from './NumberBall';
@@ -77,7 +78,7 @@ const HistoryList = ({ records, onCopy, onDelete }: HistoryListProps) => (
                 )}
                 <Typography.Text type="secondary">
                   共 {record.combinationCount} 注 · 参考金额{' '}
-                  {record.combinationCount * TICKET_PRICE} 元
+                  {formatAmount(record.amount ?? record.combinationCount * TICKET_PRICE)}
                   {record.tickets.length > 1 ? '（首注预览）' : ''}
                 </Typography.Text>
                 {record.ticketsTruncated && (

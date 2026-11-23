@@ -7,15 +7,6 @@
 export type RandomSource = () => number;
 
 /**
- * 生成 [min, max] 闭区间内的随机整数。
- * @param min 最小编号（含）
- * @param max 最大编号（含）
- * @param rng 随机源
- */
-export const randomInt = (min: number, max: number, rng: RandomSource): number =>
-  min + Math.floor(rng() * (max - min + 1));
-
-/**
  * Fisher–Yates 洗牌，返回新数组，不修改入参。
  * @param items 原数组
  * @param rng 随机源

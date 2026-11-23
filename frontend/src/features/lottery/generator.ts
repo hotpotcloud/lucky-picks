@@ -1,3 +1,4 @@
+import { ZONE_COUNT, isBigNumber } from './analysis';
 import {
   BALANCED_SAMPLE_SIZE,
   MAX_TICKETS,
@@ -7,7 +8,7 @@ import {
 } from './constants';
 import type { RandomSource } from './random';
 import { sampleDistinct } from './random';
-import type { AreaKey, BallArea, GameConfig, QuickStrategy, TicketNumbers } from './types';
+import type { BallArea, GameConfig, QuickStrategy, TicketNumbers } from './types';
 import { LotteryError } from './types';
 
 /** 复式参数校验与组合信息。 */
@@ -78,7 +79,7 @@ export const combinationsOf = <T>(items: readonly T[], k: number, limit: number)
   return result;
 };
 
-/** 校验号码数组是否在区域范围内、无重复且已升序。 */
+/** 校验号码数组是否非空、在区域范围内且无重复（顺序由调用方保证）。 */
 const isLegalNumberSet = (area: BallArea, numbers: readonly number[]): boolean => {
   if (numbers.length === 0) {
     return false;
@@ -99,9 +100,8 @@ const isLegalNumberSet = (area: BallArea, numbers: readonly number[]): boolean =
  */
 const scoreBalancedCandidate = (area: BallArea, numbers: readonly number[]): number => {
   const { min, max, count } = area;
-  const midpoint = Math.floor((min + max) / 2);
   const oddCount = numbers.filter((value) => value % 2 === 1).length;
-  const bigCount = numbers.filter((value) => value > midpoint).length;
+  const bigCount = numbers.filter((value) => isBigNumber(area, value)).length;
 
   const targetHalf = count / 2;
   const parityDeviation = Math.abs(oddCount - targetHalf);
@@ -115,15 +115,18 @@ const scoreBalancedCandidate = (area: BallArea, numbers: readonly number[]): num
   // 归一化到 0–1，再乘以权重 6，使其与奇偶/大小偏差量级接近
   const sumDeviation = (Math.abs(actualSum - idealSum) / (maxSum - minSum || 1)) * 6;
 
-  // 三区分布：把号码范围三等分，统计每区个数，目标每区 count/3
-  const zoneSize = Math.ceil((max - min + 1) / 3);
-  const zoneCounts = [0, 0, 0];
+  // 三区分布：把号码范围三等分，统计每区个数，目标每区 count/ZONE_COUNT
+  const zoneSize = Math.ceil((max - min + 1) / ZONE_COUNT);
+  const zoneCounts = Array.from({ length: ZONE_COUNT }, () => 0);
   for (const value of numbers) {
-    const zoneIndex = Math.min(2, Math.floor((value - min) / zoneSize));
+    const zoneIndex = Math.min(
+      ZONE_COUNT - 1,
+      Math.floor((value - min) / zoneSize),
+    );
     zoneCounts[zoneIndex] += 1;
   }
   const zoneDeviation = zoneCounts.reduce(
-    (total, zoneCount) => total + Math.abs(zoneCount - count / 3),
+    (total, zoneCount) => total + Math.abs(zoneCount - count / ZONE_COUNT),
     0,
   );
 
@@ -135,6 +138,12 @@ const scoreBalancedCandidate = (area: BallArea, numbers: readonly number[]): num
  * 单测可通过注入确定性 rng 复现结果。
  */
 const sampleBalanced = (area: BallArea, rng: RandomSource): number[] => {
+  // 单号/双号区域（蓝球、大乐透后区）的「均衡」会退化成固定组合，
+  // 因此小区域直接随机，避免出现永远只能选 08/09 或和值固定的配对。
+  if (area.count <= 2) {
+    return sampleDistinct(area.min, area.max, area.count, rng);
+  }
+
   let best: number[] = [];
   let bestScore = Number.POSITIVE_INFINITY;
 
@@ -190,10 +199,6 @@ export const generateQuickTickets = (
   }
   return Array.from({ length: count }, () => generateQuickTicket(game, strategy, rng));
 };
-
-/** 把区域键映射为区域规则，未知键返回 undefined。 */
-const findArea = (game: GameConfig, key: AreaKey): BallArea | undefined =>
-  game.areas.find((area) => area.key === key);
 
 /**
  * 校验复式选号并计算组合数与金额。
@@ -372,5 +377,3 @@ export const generateBankerTickets = (
   return tickets.slice(0, MAX_TICKETS);
 };
 
-/** 校验某区域是否存在，供 UI 做键映射时使用。 */
-export const getArea = findArea;

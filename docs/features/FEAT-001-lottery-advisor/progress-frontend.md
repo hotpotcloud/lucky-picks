@@ -25,7 +25,7 @@
 ```text
 cd frontend && pnpm lint      → 通过（无输出）
 cd frontend && pnpm typecheck → 通过（无输出）
-cd frontend && pnpm test      → 5 个测试文件、27 个用例全部通过
+cd frontend && pnpm test      → 6 个测试文件、37 个用例全部通过
 cd frontend && pnpm build     → 构建成功（dist/）
 ```
 
@@ -36,8 +36,21 @@ cd frontend && pnpm build     → 构建成功（dist/）
 - 胆拖 2 胆 + 6 拖 + 1 蓝：实时显示共 15 注、30 元，15 注均包含胆码。
 - 复制：提示「号码已复制到剪贴板」。
 - 保存历史并刷新页面：记录仍存在，显示首注预览与组合注数。
-- 375px 视口：页面无横向滚动（scrollWidth = clientWidth = 375）。
+- 360px 视口：页面无横向滚动（scrollWidth = clientWidth = 360）。
 - 切换彩种：已选号码清空并回到机选模式。
+
+### 独立评审与修复（2026-11-23）
+
+独立 AI 评审未发现 P0；已处理其中 P1 与高价值 P2：
+
+- 均衡策略对小号码区域退化：蓝球/后区改为直接随机，并补分散度回归测试。
+- 历史 200 注截断提示：保存成功与历史复制均明确提示，结果区文案不再声称保存完整。
+- 大小比口径改为国内主流口径（双色球 17、大乐透 18），同步分析与测试。
+- CI 增加 PR 门禁，仅 main 推送部署；Pages 权限仅授予 deploy job。
+- 生产路径改用 Hook 测试覆盖保存/删除/清空/复制/截断；删除存储层未使用的函数。
+- 历史数据增加范围、整数、时间与彩种校验；只读存储仍可读历史。
+- 复式结果不再展示单注分析；quick 注数非法时按钮即时禁用。
+- 移除未使用依赖（@ant-design/icons、@testing-library/user-event）与死代码；拆分 react/antd/vendor chunk。
 
 ### 线上验证
 

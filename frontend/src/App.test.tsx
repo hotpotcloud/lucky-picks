@@ -34,11 +34,11 @@ describe('App 交互（TC-013 / TC-014）', () => {
     expect(screen.getByRole('button', { name: '生成号码' })).toBeDisabled();
 
     const redGrid = screen.getByRole('group', { name: '红球选号' });
-    for (const value of ['01', '02', '03', '04', '05', '06', '07']) {
-      fireEvent.click(within(redGrid).getByRole('button', { name: value }));
+    for (let index = 0; index < 7; index += 1) {
+      fireEvent.click(within(redGrid).getAllByRole('button')[index]);
     }
     const blueGrid = screen.getByRole('group', { name: '蓝球选号' });
-    fireEvent.click(within(blueGrid).getByRole('button', { name: '01' }));
+    fireEvent.click(within(blueGrid).getAllByRole('button')[0]);
 
     expect(screen.getAllByText('共 7 注').length).toBeGreaterThan(0);
     const generate = screen.getByRole('button', { name: '生成号码' });
@@ -53,7 +53,7 @@ describe('App 交互（TC-013 / TC-014）', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: '复式' }));
     const redGrid = screen.getByRole('group', { name: '红球选号' });
-    fireEvent.click(within(redGrid).getByRole('button', { name: '01' }));
+    fireEvent.click(within(redGrid).getAllByRole('button')[0]);
     expect(screen.getByText(/红球（已选 1/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('radio', { name: '大乐透' }));
@@ -61,6 +61,10 @@ describe('App 交互（TC-013 / TC-014）', () => {
     // 切换后回到机选模式，展示大乐透规则
     expect(screen.getByText('机选注数')).toBeInTheDocument();
     expect(screen.getByText(/前区 1–35 选 5/)).toBeInTheDocument();
+
+    // 再切回复式，确认旧的红色号码确实被清空
+    fireEvent.click(screen.getByRole('radio', { name: '复式' }));
+    expect(screen.getByText(/前区（已选 0/)).toBeInTheDocument();
     expect(screen.queryByText(/红球（已选/)).not.toBeInTheDocument();
   });
 });

@@ -71,6 +71,11 @@ describe('generateQuickTickets（TC-001 / TC-002）', () => {
     }
   });
 
+  it('机选注数 1 与 10 均成功（TC-004）', () => {
+    expect(generateQuickTickets(SSQ_CONFIG, 1, 'random', createSeededRandom(4))).toHaveLength(1);
+    expect(generateQuickTickets(SSQ_CONFIG, 10, 'random', createSeededRandom(5))).toHaveLength(10);
+  });
+
   it('机选注数非法时抛出业务错误（TC-004）', () => {
     expect(() => generateQuickTickets(SSQ_CONFIG, 0, 'random')).toThrow(LotteryError);
     expect(() => generateQuickTickets(SSQ_CONFIG, 11, 'random')).toThrow(LotteryError);
@@ -82,11 +87,38 @@ describe('generateQuickTickets（TC-001 / TC-002）', () => {
       const reds = ticket.red ?? [];
       const odd = reds.filter((value) => value % 2 === 1).length;
       const even = reds.length - odd;
-      const big = reds.filter((value) => value > 17).length;
+      const big = reds.filter((value) => value >= 17).length;
       const small = reds.length - big;
       expect(Math.abs(odd - even)).toBeLessThanOrEqual(2);
       expect(Math.abs(big - small)).toBeLessThanOrEqual(2);
+
+      // 和值应接近理论中点，三区分布不应严重偏科
+      const sum = reds.reduce((total, value) => total + value, 0);
+      expect(Math.abs(sum - 102)).toBeLessThanOrEqual(30);
+      const zones = [0, 0, 0];
+      for (const value of reds) {
+        zones[Math.min(2, Math.floor((value - 1) / 11))] += 1;
+      }
+      expect(Math.max(...zones) - Math.min(...zones)).toBeLessThanOrEqual(2);
     }
+  });
+
+  it('均衡策略不会让蓝球/后区退化为固定号码（P1 回归）', () => {
+    const rng = createSeededRandom(11);
+    const ssqTickets = [
+      ...generateQuickTickets(SSQ_CONFIG, 10, 'balanced', rng),
+      ...generateQuickTickets(SSQ_CONFIG, 10, 'balanced', rng),
+    ];
+    const ssqBlues = new Set(ssqTickets.map((ticket) => ticket.blue?.[0]));
+    expect(ssqBlues.size).toBeGreaterThanOrEqual(3);
+
+    const dltRng = createSeededRandom(12);
+    const dltTickets = [
+      ...generateQuickTickets(DLT_CONFIG, 10, 'balanced', dltRng),
+      ...generateQuickTickets(DLT_CONFIG, 10, 'balanced', dltRng),
+    ];
+    const dltBacks = new Set(dltTickets.map((ticket) => (ticket.back ?? []).join('-')));
+    expect(dltBacks.size).toBeGreaterThanOrEqual(5);
   });
 });
 
@@ -105,6 +137,30 @@ describe('calculateMultipleSelection（TC-005 / TC-009）', () => {
     const info = calculateMultipleSelection(SSQ_CONFIG, { red: [1, 2, 3], blue: [8] });
     expect(info.valid).toBe(false);
     expect(info.error).toContain('至少选择');
+  });
+
+  it('存在重复号或超范围号码时校验失败', () => {
+    const duplicate = calculateMultipleSelection(SSQ_CONFIG, {
+      red: [1, 1, 2, 3, 4, 5],
+      blue: [8],
+    });
+    expect(duplicate.valid).toBe(false);
+
+    const outOfRange = calculateMultipleSelection(SSQ_CONFIG, {
+      red: [1, 2, 3, 4, 5, 34],
+      blue: [8],
+    });
+    expect(outOfRange.valid).toBe(false);
+  });
+
+  it('大乐透复式组合数正确', () => {
+    const info = calculateMultipleSelection(DLT_CONFIG, {
+      front: [1, 2, 3, 4, 5, 6],
+      back: [1, 2, 3],
+    });
+    expect(info.valid).toBe(true);
+    expect(info.combinations).toBe(6 * 3);
+    expect(info.amount).toBe(36);
   });
 
   it('组合数超限时校验失败（TC-009）', () => {
@@ -141,6 +197,18 @@ describe('calculateBankerSelection / generateBankerTickets（TC-006 / TC-007 / T
     const info = calculateBankerSelection(SSQ_CONFIG, [1, 2, 3, 4, 5, 6], [7, 8], { blue: [8] });
     expect(info.valid).toBe(false);
     expect(info.error).toContain('胆码必须少于');
+  });
+
+  it('大乐透胆拖会展开后区组合', () => {
+    const tickets = generateBankerTickets(DLT_CONFIG, [1], [2, 3, 4, 5, 6, 7], {
+      back: [1, 2, 3],
+    });
+    // C(6,4) * C(3,2) = 15 * 3 = 45
+    expect(tickets).toHaveLength(45);
+    for (const ticket of tickets) {
+      expect(ticket.front).toContain(1);
+      expect(ticket.back).toHaveLength(2);
+    }
   });
 
   it('拖码不足时被拦截（TC-008）', () => {

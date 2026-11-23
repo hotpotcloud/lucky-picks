@@ -32,6 +32,8 @@ const QuickPickPanel = ({
         aria-label="机选注数"
         min={QUICK_PICK_MIN}
         max={QUICK_PICK_MAX}
+        precision={0}
+        step={1}
         value={count}
         style={{ width: '100%', marginTop: 8 }}
         onChange={(value) => {
