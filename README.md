@@ -1,32 +1,72 @@
-# lucky-picks 幸运选号
+# Lucky Picks
 
-双色球 / 大乐透选号建议工具。根据用户选择的彩种与投注方式，生成随机或基于简单统计规则的号码组合，提供直观的选号体验。
+A lottery number advisor for China's Double Color Ball (双色球) and Super Lotto (大乐透). It generates random or balance-filtered number suggestions, supports single, multiple (复式), and banker-dragging (胆拖) selections, and helps users review the basic distribution of a ticket.
 
-> 免责声明：彩票开奖结果是独立随机事件，本工具的选号建议仅供娱乐参考，不构成任何投注建议，也不承诺中奖。
+> **Disclaimer**: Lottery draws are independent random events. Suggestions produced by this tool are for entertainment only, do not constitute betting advice, and never guarantee a prize. Please play responsibly and only if it is legal in your region.
 
-## 计划功能
+## Features
 
-- 彩种支持：双色球（红球 33 选 6 + 蓝球 16 选 1）、大乐透（前区 35 选 5 + 后区 12 选 2）
-- 选号模式：机选、胆拖、复式
-- 选号策略：纯随机、冷热号、遗漏值、均衡分布
-- 结果展示与复制、历史记录
+- **Two games**: Double Color Ball (6 reds from 33 + 1 blue from 16) and Super Lotto (5 fronts from 35 + 2 backs from 12).
+- **Quick pick**: generate 1–10 random tickets with either pure random or balanced selection.
+- **Multiple selection (复式)**: choose more numbers than the base ticket size and see the number of combinations and the cost.
+- **Banker-dragging selection (胆拖)**: lock banker numbers and enumerate combinations from the dragging pool, with a safety cap.
+- **Number analysis**: odd/even ratio, big/small ratio, sum, and three-zone distribution for every generated ticket.
+- **Local history**: save generated tickets in the browser, copy them, and manage the list.
+- **Responsive UI** built with Ant Design 5.
 
-## 技术栈（拟）
+## Tech Stack
 
-- 前端：React 18 + TypeScript + Ant Design 5
-- 后端：Python 3.11 + FastAPI
-- 文档与流程：遵循团队 AI 辅助研发流程（需求 → 设计 → 契约 → 任务 → 开发 → 验收）
+- React 18 + TypeScript 5
+- Vite 5
+- Ant Design 5
+- Vitest + Testing Library
+- ESLint 9 (flat config)
 
-## 目录结构（拟）
+The app is a fully static single-page application. All number generation and analysis run in the browser; no account, backend, network request, or personal data is involved.
+
+## Getting Started
+
+Requirements: Node.js >= 20 and pnpm.
+
+```bash
+cd frontend
+pnpm install
+pnpm dev        # start the dev server
+pnpm test       # run unit tests
+pnpm lint       # run ESLint
+pnpm typecheck  # run TypeScript type checking
+pnpm build      # build for production
+```
+
+## Deployment
+
+The workflow in `.github/workflows/deploy.yml` runs lint, type checking, unit tests, and the production build on every pull request. Only pushes to `main` are deployed to GitHub Pages (Settings → Pages → Source: GitHub Actions).
+
+Live site: <https://hotpotcloud.github.io/lucky-picks/>
+
+## Project Structure
 
 ```text
 .
-├── backend/     # FastAPI 后端
-├── frontend/    # React 前端
-├── docs/        # 需求、设计、契约、测试用例、任务与进度
-└── AGENTS.md    # AI 协作规则
+├── .github/workflows/   # GitHub Pages deployment
+├── docs/                # Requirements, design, test cases, tasks, progress
+├── frontend/            # React + TypeScript + Ant Design application
+└── README.md
 ```
 
-## 开发状态
+## Development Process
 
-仓库初始化阶段，需求与设计文档编写中。
+This project follows the team's AI-assisted front-end/back-end development process:
+
+1. Requirement and core test cases
+2. Design and task breakdown
+3. Implementation with tests
+4. Lint, type check, unit tests, and production build
+5. Independent AI review
+6. Pull request, merge, and deployment
+
+See `docs/features/FEAT-001-lottery-advisor/` for the artifacts of the first feature.
+
+## License
+
+[MIT](./LICENSE)

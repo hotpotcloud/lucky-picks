@@ -1,0 +1,156 @@
+/**
+ * 全局基础样式：只做页面背景、容器、号码球与布局等最小约定，
+ * 组件视觉统一交给 Ant Design 5，避免自创设计体系。
+ */
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.88);
+  background-color: #f5f7fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* 页面容器 */
+.app-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.app-header {
+  margin-bottom: 16px;
+}
+
+.app-footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+/* 选号网格：自适应列宽，360px 下仍可点击 */
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+}
+
+.number-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  line-height: 0;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.number-button:hover {
+  transform: translateY(-1px);
+}
+
+.number-button:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+}
+
+/* 号码球 */
+.lottery-ball {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.ball-red {
+  background: #cf1322;
+}
+
+.ball-blue {
+  background: #1677ff;
+}
+
+.ball-small {
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+}
+
+/* 未选中的号码球显示为灰色 */
+.number-button:not(.is-selected) .lottery-ball {
+  background: #f0f0f0;
+  color: #595959;
+}
+
+/* 胆拖语义色：胆码金色，拖码蓝色 */
+.number-button.is-banker .lottery-ball {
+  background: #ad6800;
+  color: #fff;
+}
+
+.number-button.is-drag .lottery-ball {
+  background: #1677ff;
+  color: #fff;
+}
+
+/* 生成结果行 */
+.ticket-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ticket-row:last-child {
+  border-bottom: none;
+}
+
+.ticket-index {
+  min-width: 20px;
+}
+
+.ticket-numbers {
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ticket-area {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.ticket-analysis {
+  flex: 1 1 240px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 575px) {
+  .ticket-analysis {
+    justify-content: flex-start;
+  }
+}
