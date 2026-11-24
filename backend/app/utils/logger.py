@@ -20,7 +20,7 @@ def setup_logging(level: str = "INFO") -> None:
         diagnose=False,
         format=(
             "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | "
-            "<cyan>{extra[request_id]}</cyan> | {message}"
+            "{message}"
         ),
     )
 

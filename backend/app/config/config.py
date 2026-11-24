@@ -47,9 +47,9 @@ class Settings:
     db_type: str = field(default_factory=lambda: os.getenv("DB_TYPE", "mariadb").lower())
     db_host: str = field(default_factory=lambda: os.getenv("DB_HOST", "127.0.0.1"))
     db_port: int = field(default_factory=lambda: _env_int("DB_PORT", 3306))
-    db_user: str = field(default_factory=lambda: os.getenv("DB_USER", "lucky"))
+    db_user: str = field(default_factory=lambda: os.getenv("DB_USER", "xbf"))
     db_password: str = field(default_factory=lambda: os.getenv("DB_PASSWORD", ""))
-    db_name: str = field(default_factory=lambda: os.getenv("DB_NAME", "lucky_picks"))
+    db_name: str = field(default_factory=lambda: os.getenv("DB_NAME", "lucky_ball"))
     cors_origins: List[str] = field(
         default_factory=lambda: [
             origin.strip()

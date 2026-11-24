@@ -162,7 +162,9 @@ class _ConnectionWrapper:
         Returns:
             游标对象。
         """
-        return self.raw.cursor().execute(self._sql(sql), params)
+        cursor = self.raw.cursor()
+        cursor.execute(self._sql(sql), params)
+        return cursor
 
     def executemany(self, sql: str, params: Any) -> Any:
         """批量执行 SQL。
@@ -174,7 +176,9 @@ class _ConnectionWrapper:
         Returns:
             游标对象。
         """
-        return self.raw.cursor().executemany(self._sql(sql), params)
+        cursor = self.raw.cursor()
+        cursor.executemany(self._sql(sql), params)
+        return cursor
 
     def executescript(self, script: str) -> None:
         """执行多段建表语句。
@@ -256,33 +260,46 @@ class Database:
     def _init_schema(self) -> None:
         """创建表结构。"""
         auto_increment = "AUTOINCREMENT" if self.dialect == "sqlite" else "AUTO_INCREMENT"
+        # MariaDB 不允许 TEXT 列作为主键（无前缀长度），键列改用 VARCHAR。
+        index_sql = "CREATE INDEX IF NOT EXISTS idx_draws_game_date ON draws(game, draw_date DESC);"
+        if self.dialect == "mariadb":
+            # MariaDB 不允许 TEXT 列作为主键（无前缀长度），键列改用 VARCHAR；金额用 BIGINT。
+            key_type = "VARCHAR(32)"
+            date_type = "VARCHAR(32)"
+            text_type = "TEXT"
+            money_type = "BIGINT"
+        else:
+            key_type = "TEXT"
+            date_type = "TEXT"
+            text_type = "TEXT"
+            money_type = "INTEGER"
         self.connection.executescript(
             f"""
             CREATE TABLE IF NOT EXISTS draws (
-                game TEXT NOT NULL,
-                issue TEXT NOT NULL,
-                draw_date TEXT NOT NULL,
-                main_numbers TEXT NOT NULL,
-                extra_numbers TEXT NOT NULL,
-                sales INTEGER,
-                pool INTEGER,
-                source TEXT,
-                fetched_at TEXT,
+                game {key_type} NOT NULL,
+                issue {key_type} NOT NULL,
+                draw_date {date_type} NOT NULL,
+                main_numbers {text_type} NOT NULL,
+                extra_numbers {text_type} NOT NULL,
+                sales {money_type},
+                pool {money_type},
+                source {date_type},
+                fetched_at {date_type},
                 PRIMARY KEY (game, issue)
             );
-            CREATE INDEX IF NOT EXISTS idx_draws_game_date ON draws(game, draw_date DESC);
+            {index_sql}
 
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY {auto_increment},
-                username TEXT NOT NULL UNIQUE,
+                username VARCHAR(64) NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
-                role TEXT NOT NULL DEFAULT 'user',
+                role VARCHAR(32) NOT NULL DEFAULT 'user',
                 token_version INTEGER NOT NULL DEFAULT 1,
-                created_at TEXT NOT NULL
+                created_at VARCHAR(64) NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
+                cfg_key VARCHAR(64) PRIMARY KEY,
                 value TEXT NOT NULL
             );
             """
@@ -533,7 +550,9 @@ class Database:
         Returns:
             配置值；不存在时返回 None。
         """
-        row = self.connection.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        row = self.connection.execute(
+            "SELECT value FROM settings WHERE cfg_key = ?", (key,)
+        ).fetchone()
         return str(row["value"]) if row else None
 
     def set_setting(self, key: str, value: str) -> None:
@@ -544,11 +563,17 @@ class Database:
             value: 配置值。
         """
         with self.connection:
-            self.connection.execute(
-                "INSERT INTO settings (key, value) VALUES (?, ?) "
-                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                (key, value),
-            )
+            if self.dialect == "mariadb":
+                upsert = (
+                    "INSERT INTO settings (cfg_key, value) VALUES (?, ?) "
+                    "ON DUPLICATE KEY UPDATE value = VALUES(value)"
+                )
+            else:
+                upsert = (
+                    "INSERT INTO settings (cfg_key, value) VALUES (?, ?) "
+                    "ON CONFLICT(cfg_key) DO UPDATE SET value = excluded.value"
+                )
+            self.connection.execute(upsert, (key, value))
 
     def ensure_secret(self) -> str:
         """获取令牌签名密钥，不存在时生成并持久化。
