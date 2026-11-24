@@ -56,9 +56,9 @@ nohup .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port "${SERVICE_PORT}" \
   > /var/log/lucky-picks-api.log 2>&1 &
 
 echo "[deploy] 重启前端静态服务"
+pkill -f "serve_static.py ${WEB_PORT}" || true
 pkill -f "http.server ${WEB_PORT}" || true
-cd "${DEPLOY_PATH}/frontend/dist"
-nohup python3 -m http.server "${WEB_PORT}" --bind 0.0.0.0 \
+nohup python3 "${DEPLOY_PATH}/backend/scripts/serve_static.py" "${WEB_PORT}" "${DEPLOY_PATH}/frontend/dist" \
   > /var/log/lucky-picks-web.log 2>&1 &
 
 sleep 10
