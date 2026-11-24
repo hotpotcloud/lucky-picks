@@ -1,12 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { webcrypto } from 'node:crypto';
 import { afterEach, vi } from 'vitest';
-
-// 密码摘要依赖 WebCrypto；jsdom 未实现 subtle 时使用 Node 实现兜底。
-if (!globalThis.crypto?.subtle) {
-  Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
-}
 
 /**
  * 每个用例结束后清理渲染树。
