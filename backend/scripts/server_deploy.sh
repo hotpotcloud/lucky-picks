@@ -7,7 +7,7 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/lucky-picks}"
 SERVICE_PORT="${SERVICE_PORT:-1688}"
-WEB_PORT="${WEB_PORT:-8080}"
+WEB_PORT="${WEB_PORT:-1689}"
 CONFIG_FILE="${DEPLOY_PATH}/config/.env"
 API_BASE="http://119.29.189.103:${SERVICE_PORT}"
 

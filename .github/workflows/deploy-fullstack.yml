@@ -33,4 +33,4 @@ jobs:
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/lucky-picks' }}
           SERVICE_PORT: ${{ secrets.SERVICE_PORT || 1688 }}
-          WEB_PORT: ${{ secrets.WEB_PORT || 8080 }}
+          WEB_PORT: ${{ secrets.WEB_PORT || 1689 }}
