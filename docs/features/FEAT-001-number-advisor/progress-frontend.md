@@ -61,6 +61,10 @@ cd frontend && pnpm build     → 构建成功（dist/）
 - 部署前置问题：用户站 `hotpotcloud.github.io` 的自定义域名 `happyjuzi.cn` 无法解析，导致项目页 301；经需求提出方确认后移除该自定义域名，项目页恢复可用
 - 验收记录：`acceptance-report.md`（产品 UAT 待需求提出方确认）
 
+## 后续变更
+
+- 2026-11-24：按需求提出方要求执行术语规范化迁移（玩法改为「红蓝玩法 / 前后玩法」，标识符 `redblue` / `frontback`，目录与 Hook 更名），行为不变；新增 `pnpm check:terms` 门禁并接入 CI，详见 FEAT-002 文档。
+
 ## 遗留问题
 
 - 冷热号/遗漏值需要公开、合规、稳定的数据来源，作为 FEAT-002 评估。
