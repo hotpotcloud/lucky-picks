@@ -51,7 +51,7 @@ export const useDraws = (game: string) => {
         }
       }
       try {
-        const response = await fetch(`/data/${game}.json`);
+        const response = await fetch(`${import.meta.env.BASE_URL}data/${game}.json`);
         if (!response.ok) {
           throw new Error('静态数据不存在');
         }
