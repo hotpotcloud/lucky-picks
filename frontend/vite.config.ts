@@ -48,6 +48,10 @@ export default defineConfig(({ mode }) => ({
           ) {
             return 'antd';
           }
+          // Three.js 只服务于首页 3D 场景，独立分包后随懒加载按需下载。
+          if (parts.includes('three')) {
+            return 'three';
+          }
           return 'vendor';
         },
       },

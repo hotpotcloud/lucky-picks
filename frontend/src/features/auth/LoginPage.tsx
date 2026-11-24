@@ -1,13 +1,14 @@
 /** 邀请制登录与注册页面；默认隐藏，水印点击两次后缓慢出现。 */
 
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { ArrowUpRight, Eye, EyeOff, TerminalSquare } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Notice } from '../../components/ui/feedback';
 import { Input } from '../../components/ui/input';
-import { TreasureScene } from './TreasureScene';
 import { useLoginPageLogic } from './useLoginPageLogic';
+
+const TreasureScene = lazy(() => import('./TreasureScene'));
 
 const LoginPage = () => {
   const logic = useLoginPageLogic();
@@ -27,9 +28,20 @@ const LoginPage = () => {
     </button>
   );
 
+  // 全屏 3D 场景作为淡背景层，两种登录状态共用，避免展开表单后背景跳变。
+  const backdrop = (
+    <div className="login-backdrop" aria-hidden="true">
+      <Suspense fallback={<div className="treasure-fallback" />}>
+        <TreasureScene />
+      </Suspense>
+      <div className="login-backdrop-veil" />
+    </div>
+  );
+
   if (!isVisible) {
     return (
       <main className="login-shell login-landing">
+        {backdrop}
         <div className="landing-grid" aria-hidden="true" />
         <div className="landing-ghost" aria-hidden="true">
           LUCKY PICKS
@@ -37,15 +49,15 @@ const LoginPage = () => {
         <div className="landing-brand">
           <strong>LUCKY PICKS</strong>
         </div>
-        <TreasureScene />
         {watermark}
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-4 py-8 text-[var(--foreground)] sm:px-8 lg:grid lg:place-items-center">
-      <div className="login-reveal w-full">
+    <main className="login-shell login-landing login-form-shell">
+      {backdrop}
+      <div className="login-reveal relative z-[2] w-full">
       <div className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)] lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden min-h-[580px] flex-col justify-between border-r border-[var(--border)] bg-[var(--card-raised)] p-10 lg:flex">
           <div className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-emerald-300">
