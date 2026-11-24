@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 
+from app.ai.views import router as ai_router
 from app.auth.views import router as auth_router
 from app.backtest.views import router as backtest_router
 from app.common.exceptions import ApiError
@@ -193,6 +194,7 @@ def health() -> dict:
 
 app.include_router(auth_router)
 app.include_router(games_router)
+app.include_router(ai_router)
 app.include_router(draws_router)
 app.include_router(stats_router)
 app.include_router(recommend_router)

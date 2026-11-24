@@ -14,6 +14,7 @@ import { usePicker } from './features/picker/hooks/usePicker';
 import { useDraws, computeStats } from './features/data/useDraws';
 import { FrequencyChart, OmissionTable, TrendGrid } from './features/data/Charts';
 import RecommendPanel from './features/recommend/RecommendPanel';
+import AiPanel from './features/stats/AiPanel';
 import NumberBall from './features/picker/components/NumberBall';
 
 /** 功能分区标识。 */
@@ -209,6 +210,7 @@ const MainView = () => {
         {tab === 'analysis' && (
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Card title="数据分析" extra={<Tag>{stats.window} 期</Tag>}>
+              <AiPanel game={picker.gameId} window={windowSize} />
               <Space wrap>
                 <Typography.Text>窗口</Typography.Text>
                 <Segmented

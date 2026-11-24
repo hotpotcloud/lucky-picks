@@ -73,3 +73,13 @@ export interface RecommendationDto {
   bets: BetDto[];
   dataVersion: string;
 }
+
+/** AI 分析结果。 */
+export interface AiAnalysisDto {
+  /** 使用的模型（固定 deepseek-v4.1-flash）。 */
+  model: string;
+  /** 分析正文。 */
+  content: string;
+  /** 风险提示。 */
+  disclaimer: string;
+}

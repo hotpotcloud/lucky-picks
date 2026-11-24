@@ -3,7 +3,7 @@
  * VITE_API_BASE_URL 未配置时视为「离线模式」，由数据层回退到静态快照。
  */
 
-import type { Envelope, LoginResponse } from './types';
+import type { AiAnalysisDto, Envelope, LoginResponse } from './types';
 
 /** 后端服务地址（未配置则为空）。 */
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -126,3 +126,18 @@ export const apiPost = async <T>(path: string, payload: unknown): Promise<T> => 
   }
   return body.data;
 };
+
+/**
+ * 查询服务端 AI 是否配置。
+ * @returns 是否可用
+ */
+export const fetchAiConfigured = async (): Promise<{ available: boolean }> =>
+  apiGet<{ available: boolean }>('/api/v1/ai/configured');
+
+/**
+ * 生成 AI 统计分析。
+ * @param game 玩法标识
+ * @param window 统计窗口
+ */
+export const fetchAiAnalysis = async (game: string, window: number): Promise<AiAnalysisDto> =>
+  apiGet<AiAnalysisDto>(`/api/v1/ai/analysis/${game}?window=${window}`);
