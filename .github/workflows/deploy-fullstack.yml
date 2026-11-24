@@ -1,0 +1,36 @@
+name: Deploy Full Stack
+
+# 推送 main 后通过 SSH 把前后端部署到同一台服务器：
+# - 后端 uvicorn: SERVICE_PORT（默认 1688）
+# - 前端静态站: WEB_PORT（默认 8080）
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/deploy-fullstack.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: 30m
+          script_stop: true
+          envs: DEPLOY_PATH,SERVICE_PORT,WEB_PORT
+          script: |
+            set -e
+            export DEPLOY_PATH SERVICE_PORT WEB_PORT
+            bash "${DEPLOY_PATH}/backend/scripts/server_deploy.sh"
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/lucky-picks' }}
+          SERVICE_PORT: ${{ secrets.SERVICE_PORT || 1688 }}
+          WEB_PORT: ${{ secrets.WEB_PORT || 8080 }}
