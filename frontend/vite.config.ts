@@ -33,11 +33,14 @@ export default defineConfig(({ mode }) => ({
           if (!parts.includes('node_modules')) {
             return undefined;
           }
-          if (
-            parts.includes('react') ||
-            parts.includes('react-dom') ||
-            parts.includes('scheduler')
-          ) {
+          // 只匹配 React 运行时包本身，避免把 @assistant-ui/react 等
+          // 子路径同样带 react 的包误分到 react chunk，形成 chunk 循环依赖。
+          const lastNodeModules = parts.lastIndexOf('node_modules');
+          const packageDir = lastNodeModules >= 0 ? parts[lastNodeModules + 1] : '';
+          const packageName = packageDir.startsWith('@')
+            ? `${packageDir}/${parts[lastNodeModules + 2] ?? ''}`
+            : packageDir;
+          if (['react', 'react-dom', 'scheduler'].includes(packageName)) {
             return 'react';
           }
           if (
