@@ -40,7 +40,7 @@ def register(
     try:
         database.register_user_with_invitation(
             payload.username,
-            payload.password,
+            payload.passwordDigest,
             payload.inviteCode,
         )
     except InvalidInvitationError:
@@ -109,7 +109,7 @@ def login(
     Returns:
         统一响应结构。
     """
-    user = authenticate(database, payload.username, payload.password)
+    user = authenticate(database, payload.username, payload.passwordDigest)
     if user is None:
         return JSONResponse(
             status_code=401,

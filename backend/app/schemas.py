@@ -10,11 +10,25 @@ class LoginRequest(BaseModel):
 
     Attributes:
         username: 登录名。
-        password: 明文密码。
+        passwordDigest: 客户端计算的 SHA-256 密码摘要，网络上不传输明文密码。
     """
 
+    model_config = {"extra": "forbid"}
     username: str = Field(min_length=1, max_length=64)
-    password: str = Field(min_length=1, max_length=128)
+    passwordDigest: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def normalize_username(cls, value: object) -> object:
+        """统一去除账号首尾空白，与前端摘要计算保持一致。
+
+        Args:
+            value: 原始账号输入。
+
+        Returns:
+            去除首尾空白后的账号。
+        """
+        return value.strip() if isinstance(value, str) else value
 
 
 class RegisterRequest(BaseModel):
@@ -22,7 +36,8 @@ class RegisterRequest(BaseModel):
 
     model_config = {"extra": "forbid"}
     username: str = Field(min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
-    password: str = Field(min_length=8, max_length=128)
+    passwordDigest: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    passwordLength: int = Field(ge=8, le=128)
     inviteCode: str = Field(min_length=1, max_length=128)
 
 

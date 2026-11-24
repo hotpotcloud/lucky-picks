@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiGet, getToken, login, register, setToken, UnauthorizedError } from './client';
+import { derivePasswordDigest } from './passwordDigest';
 
 const loginResponse = {
   token: 'token-1',
@@ -21,12 +22,13 @@ describe('API 客户端', () => {
     );
 
     await login('tester', 'password');
+    const passwordDigest = await derivePasswordDigest('tester', 'password');
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/v1/auth/login',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ username: 'tester', password: 'password' }),
+        body: JSON.stringify({ username: 'tester', passwordDigest }),
       }),
     );
   });
@@ -40,17 +42,34 @@ describe('API 客户端', () => {
     );
 
     await expect(register('tester', 'password', 'invite-code')).resolves.toEqual(loginResponse);
+    const passwordDigest = await derivePasswordDigest('tester', 'password');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/v1/auth/register',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
           username: 'tester',
-          password: 'password',
+          passwordDigest,
+          passwordLength: 8,
           inviteCode: 'invite-code',
         }),
       }),
     );
+  });
+
+  it('登录请求体不包含明文密码', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({ code: 0, message: 'ok', data: loginResponse, requestId: 'request-3' }),
+        { status: 200 },
+      ),
+    );
+
+    await login('tester', 'secret-password');
+
+    const body = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
+    expect(body).not.toContain('secret-password');
+    expect(body).toContain('passwordDigest');
   });
 
   it('受保护接口返回 401 时统一清除过期令牌', async () => {

@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from app.auth.digest import derive_password_digest
 from app.db.database import Database
 
 
@@ -16,7 +17,13 @@ def login(client: TestClient) -> str:
     Returns:
         令牌。
     """
-    response = client.post("/api/v1/auth/login", json={"username": "admin", "password": "888888"})
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "username": "admin",
+            "passwordDigest": derive_password_digest("admin", "888888"),
+        },
+    )
     return response.json()["data"]["token"]
 
 

@@ -1,4 +1,7 @@
-import { Button, Empty, List, Popconfirm, Space, Tag, Typography } from 'antd';
+import { Copy, Trash2 } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Badge, EmptyState, Notice } from '../../../components/ui/feedback';
 import { GAME_CONFIGS } from '../config';
 import { TICKET_PRICE } from '../constants';
 import { formatAmount } from '../format';
@@ -21,78 +24,77 @@ interface HistoryListProps {
  * 记录只保存在当前浏览器，不做任何上传。
  */
 const HistoryList = ({ records, onCopy, onDelete }: HistoryListProps) => (
-  <List
-    dataSource={[...records]}
-    locale={{ emptyText: <Empty description="暂无历史记录" /> }}
-    renderItem={(record) => {
+  <div className="space-y-2">
+    {records.length === 0 ? (
+      <EmptyState title="暂无本地记录" description="保存选号结果后会显示在这里。" />
+    ) : null}
+    {records.map((record) => {
       const game = GAME_CONFIGS[record.gameId];
       const preview = record.tickets[0];
+      const handleDelete = () => {
+        if (window.confirm('删除这条记录？')) {
+          onDelete(record.id);
+        }
+      };
 
       return (
-        <List.Item
-          actions={[
-            <Button key="copy" type="link" size="small" onClick={() => onCopy(record)}>
-              复制
-            </Button>,
-            <Popconfirm
-              key="delete"
-              title="删除这条记录？"
-              onConfirm={() => onDelete(record.id)}
-              okText="删除"
-              cancelText="取消"
-            >
-              <Button type="link" size="small" danger>
-                删除
-              </Button>
-            </Popconfirm>,
-          ]}
-        >
-          <List.Item.Meta
-            title={
-              <Space wrap size={4}>
-                <Tag color="blue">{record.gameName}</Tag>
-                <Tag>{MODE_LABELS[record.mode]}</Tag>
-                <Typography.Text type="secondary">
+        <Card className="bg-slate-950/30" key={record.id}>
+          <CardContent className="space-y-3 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="info">{record.gameName}</Badge>
+                <Badge tone="neutral">{MODE_LABELS[record.mode]}</Badge>
+                <time className="text-xs text-slate-500">
                   {new Date(record.createdAt).toLocaleString()}
-                </Typography.Text>
-              </Space>
-            }
-            description={
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                {preview && (
-                  <Space wrap size={2}>
-                    {game.areas.map((area) => (
-                      <span className="ticket-area" key={area.key}>
-                        <Typography.Text type="secondary">{area.label}</Typography.Text>
-                        {(preview[area.key] ?? []).map((value) => (
-                          <NumberBall
-                            key={`${area.key}-${value}`}
-                            value={value}
-                            color={area.color}
-                            size="small"
-                          />
-                        ))}
-                      </span>
+                </time>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" type="button" onClick={() => onCopy(record)}>
+                  <Copy className="size-3.5" aria-hidden="true" />
+                  复制
+                </Button>
+                <Button
+                  className="text-rose-300 hover:bg-rose-400/10"
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="size-3.5" aria-hidden="true" />
+                  删除
+                </Button>
+              </div>
+            </div>
+            {preview ? (
+              <div className="flex flex-wrap gap-2">
+                {game.areas.map((area) => (
+                  <span className="ticket-area" key={area.key}>
+                    <span className="text-xs text-slate-500">{area.label}</span>
+                    {(preview[area.key] ?? []).map((value) => (
+                      <NumberBall
+                        key={`${area.key}-${value}`}
+                        value={value}
+                        color={area.color}
+                        size="small"
+                      />
                     ))}
-                  </Space>
-                )}
-                <Typography.Text type="secondary">
-                  共 {record.combinationCount} 注 · 参考金额{' '}
-                  {formatAmount(record.amount ?? record.combinationCount * TICKET_PRICE)}
-                  {record.tickets.length > 1 ? '（首注预览）' : ''}
-                </Typography.Text>
-                {record.ticketsTruncated && (
-                  <Typography.Text type="warning">
-                    历史中仅保存前 {record.tickets.length} 注号码
-                  </Typography.Text>
-                )}
-              </Space>
-            }
-          />
-        </List.Item>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <p className="text-xs text-slate-400">
+              共 {record.combinationCount} 注 · 参考金额{' '}
+              {formatAmount(record.amount ?? record.combinationCount * TICKET_PRICE)}
+              {record.tickets.length > 1 ? '（首注预览）' : ''}
+            </p>
+            {record.ticketsTruncated ? (
+              <Notice tone="warning">历史中仅保存前 {record.tickets.length} 注号码</Notice>
+            ) : null}
+          </CardContent>
+        </Card>
       );
-    }}
-  />
+    })}
+  </div>
 );
 
 export default HistoryList;

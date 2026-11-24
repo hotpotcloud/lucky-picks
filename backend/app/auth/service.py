@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-from app.db.database import Database, User, verify_password
+from app.db.database import Database, User, verify_auth_digest
 
 # 令牌载荷字段。
 TOKEN_USERNAME = "sub"
@@ -121,20 +121,20 @@ def decode_token(database: Database, token: str) -> Optional[TokenPayload]:
     )
 
 
-def authenticate(database: Database, username: str, password: str) -> Optional[User]:
-    """校验账号密码。
+def authenticate(database: Database, username: str, password_digest: str) -> Optional[User]:
+    """校验账号密码摘要。
 
     Args:
         database: 数据库。
         username: 登录名。
-        password: 明文密码。
+        password_digest: 前端计算的密码摘要，网络上不出现明文密码。
 
     Returns:
         用户对象；校验失败时返回 None。
     """
-    user = database.get_user(username)
+    user = database.get_user(username.strip())
     if user is None:
         return None
-    if not verify_password(password, user.password_hash):
+    if not verify_auth_digest(password_digest, user.password_hash):
         return None
     return user

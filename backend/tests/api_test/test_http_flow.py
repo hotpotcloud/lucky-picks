@@ -11,6 +11,7 @@ import pytest
 import uvicorn
 
 import app.dependencies as dependencies
+from app.auth.digest import derive_password_digest
 from app.config.config import settings
 from app.db.database import Database
 from app.main import app
@@ -44,12 +45,19 @@ def test_frontend_proxy_auth_data_and_recommendation(
         assert server.started, "后端测试服务未能启动"
         with httpx.Client(base_url=f"http://127.0.0.1:{proxy.server_port}", timeout=15) as client:
             assert client.get("/").status_code == 200
-            credentials = {"username": "http_reader", "password": "test-reader-pass"}
+            reader_password = "test-reader-pass"
+            credentials = {
+                "username": "http_reader",
+                "passwordDigest": derive_password_digest("http_reader", reader_password),
+                "passwordLength": len(reader_password),
+            }
             admin_login = client.post(
                 "/api/v1/auth/login",
                 json={
                     "username": settings.admin_username,
-                    "password": settings.admin_password,
+                    "passwordDigest": derive_password_digest(
+                        settings.admin_username, settings.admin_password
+                    ),
                 },
             )
             assert admin_login.status_code == 200
@@ -74,7 +82,13 @@ def test_frontend_proxy_auth_data_and_recommendation(
             headers = {"Authorization": f"Bearer {data['token']}"}
             assert client.post("/api/v1/auth/logout", headers=headers).status_code == 200
             assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
-            login = client.post("/api/v1/auth/login", json=credentials)
+            login = client.post(
+                "/api/v1/auth/login",
+                json={
+                    "username": "http_reader",
+                    "passwordDigest": derive_password_digest("http_reader", reader_password),
+                },
+            )
             assert login.status_code == 200
             headers = {"Authorization": f"Bearer {login.json()['data']['token']}"}
             assert client.get("/api/v1/auth/me", headers=headers).json()["data"]["username"] == "http_reader"

@@ -8,6 +8,7 @@ os.environ["DB_PATH"] = ":memory:"
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.auth.digest import derive_password_digest  # noqa: E402
 from app.db.database import Database  # noqa: E402
 from app.dependencies import get_database  # noqa: E402
 from app.main import app  # noqa: E402
@@ -21,7 +22,7 @@ def database() -> Database:
         数据库实例。
     """
     db = Database(":memory:", dialect="sqlite")
-    db.create_user("admin", "888888", role="admin")
+    db.create_user("admin", derive_password_digest("admin", "888888"), role="admin")
     _seed_draws(db)
     return db
 

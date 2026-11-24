@@ -22,6 +22,35 @@ tags:
   - name: backtest
 
 paths:
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: 使用账号与密码摘要登录
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, passwordDigest]
+              properties:
+                username: { type: string, minLength: 1, maxLength: 64 }
+                passwordDigest:
+                  type: string
+                  minLength: 64
+                  maxLength: 64
+                  pattern: '^[0-9a-f]{64}$'
+                  description: 浏览器内计算的 SHA-256 摘要，网络上不出现明文密码
+      responses:
+        '200':
+          description: 登录成功
+        '401':
+          description: 账号或密码不正确
+        '422':
+          description: 请求体缺少摘要，或携带了明文密码字段
+
   /api/v1/auth/invitations:
     post:
       tags: [auth]
@@ -63,10 +92,16 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [username, password, inviteCode]
+              required: [username, passwordDigest, passwordLength, inviteCode]
               properties:
                 username: { type: string, minLength: 3, maxLength: 64, pattern: '^[A-Za-z0-9_-]+$' }
-                password: { type: string, minLength: 8, maxLength: 128, format: password }
+                passwordDigest:
+                  type: string
+                  minLength: 64
+                  maxLength: 64
+                  pattern: '^[0-9a-f]{64}$'
+                  description: 浏览器内计算的 SHA-256 摘要，前缀 lucky-picks:v1:，不传输明文密码
+                passwordLength: { type: integer, minimum: 8, maximum: 128, description: 仅用于长度校验，不泄露密码内容 }
                 inviteCode: { type: string, minLength: 1, maxLength: 128, description: 已登录用户生成的一次性邀请码 }
       responses:
         '200':

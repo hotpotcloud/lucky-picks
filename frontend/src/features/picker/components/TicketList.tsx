@@ -1,4 +1,4 @@
-import { Alert, Space, Tag, Typography } from 'antd';
+import { Badge, Notice } from '../../../components/ui/feedback';
 import { MAX_RENDERED_TICKETS } from '../constants';
 import { analyzeTicket } from '../analysis';
 import type { GameConfig, TicketNumbers } from '../types';
@@ -25,20 +25,23 @@ const TicketList = ({ game, tickets, combinations, analyze = true }: TicketListP
   const hiddenCount = tickets.length - visible.length;
 
   return (
-    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+    <div className="space-y-2">
       {visible.map((ticket, index) => {
         const analysis = analyzeTicket(game, ticket);
         return (
-          <div className="ticket-row" key={index}>
-            <Typography.Text type="secondary" className="ticket-index">
-              {index + 1}.
-            </Typography.Text>
+          <div
+            className="ticket-row rounded-md border border-slate-800 bg-slate-950/35 px-3 py-2"
+            key={index}
+          >
+            <span className="ticket-index font-mono text-xs text-slate-500">
+              {String(index + 1).padStart(2, '0')}
+            </span>
             <div className="ticket-numbers">
               {game.areas.map((area) => {
                 const values = ticket[area.key] ?? [];
                 return (
                   <span className="ticket-area" key={area.key}>
-                    <Typography.Text type="secondary">{area.label}</Typography.Text>
+                    <span className="text-xs text-slate-500">{area.label}</span>
                     {values.map((value) => (
                       <NumberBall key={`${area.key}-${value}`} value={value} color={area.color} />
                     ))}
@@ -47,25 +50,23 @@ const TicketList = ({ game, tickets, combinations, analyze = true }: TicketListP
               })}
             </div>
             {analyze ? (
-              <Space size={4} wrap className="ticket-analysis">
-                <Tag>奇偶 {analysis.oddEven}</Tag>
-                <Tag>大小 {analysis.bigSmall}</Tag>
-                <Tag>和值 {analysis.sum}</Tag>
-                <Tag>三区 {analysis.zones}</Tag>
-              </Space>
+              <div className="ticket-analysis flex flex-wrap gap-1">
+                <Badge tone="neutral">奇偶 {analysis.oddEven}</Badge>
+                <Badge tone="neutral">大小 {analysis.bigSmall}</Badge>
+                <Badge tone="neutral">和值 {analysis.sum}</Badge>
+                <Badge tone="neutral">三区 {analysis.zones}</Badge>
+              </div>
             ) : null}
           </div>
         );
       })}
 
       {hiddenCount > 0 && (
-        <Alert
-          type="info"
-          showIcon
-          message={`为保持页面流畅，仅展示前 ${MAX_RENDERED_TICKETS} 注，合计 ${combinations} 注。复制包含完整结果。`}
-        />
+        <Notice tone="info">
+          为保持页面流畅，仅展示前 {MAX_RENDERED_TICKETS} 注，合计 {combinations} 注。复制包含完整结果。
+        </Notice>
       )}
-    </Space>
+    </div>
   );
 };
 

@@ -1,4 +1,5 @@
-import { Alert, Button, Space, Tag, Typography } from 'antd';
+import { Button } from '../../../components/ui/button';
+import { Badge, Notice } from '../../../components/ui/feedback';
 import type { SelectionInfo } from '../generator';
 import type { AreaKey, GameConfig, TicketNumbers } from '../types';
 import NumberGrid from './NumberGrid';
@@ -21,37 +22,35 @@ interface MultiplePanelProps {
  * 复式选号面板：逐个区域展示选号网格，并实时反馈组合数与金额。
  */
 const MultiplePanel = ({ game, selections, onToggle, info, onQuickFill }: MultiplePanelProps) => (
-  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-    <Button block onClick={onQuickFill}>
+  <div className="space-y-5">
+    <Button className="w-full" type="button" onClick={onQuickFill}>
       机选填充
     </Button>
     {game.areas.map((area) => {
       const selected = selections[area.key] ?? [];
       return (
-        <div key={area.key}>
-          <Typography.Text strong>
+        <section className="space-y-2" key={area.key}>
+          <h3 className="text-sm font-semibold text-slate-100">
             {area.label}（已选 {selected.length}，至少 {area.count}）
-          </Typography.Text>
-          <div style={{ marginTop: 8 }}>
-            <NumberGrid
-              area={area}
-              selected={selected}
-              onToggle={(value) => onToggle(area.key, value)}
-            />
-          </div>
-        </div>
+          </h3>
+          <NumberGrid
+            area={area}
+            selected={selected}
+            onToggle={(value) => onToggle(area.key, value)}
+          />
+        </section>
       );
     })}
 
     {info.valid ? (
-      <Space wrap>
-        <Tag color="blue">共 {info.combinations} 注</Tag>
-        <Tag color="gold">参考金额 {info.amount} 元</Tag>
-      </Space>
+      <div className="flex flex-wrap gap-2">
+        <Badge tone="info">共 {info.combinations} 注</Badge>
+        <Badge tone="warning">参考金额 {info.amount} 元</Badge>
+      </div>
     ) : (
-      <Alert type="warning" showIcon message={info.error} />
+      <Notice tone="warning">{info.error}</Notice>
     )}
-  </Space>
+  </div>
 );
 
 export default MultiplePanel;

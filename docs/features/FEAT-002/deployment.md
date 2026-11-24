@@ -39,17 +39,31 @@
 
 也可在 Actions 页面手动 `workflow_dispatch` 触发。
 
-## 四、HTTPS 要求（前端调用前提）
+## 四、访问方式与 HTTPS
 
-GitHub Pages 是 HTTPS，浏览器会拦截页面发起的 `http://IP:1688` 请求（混合内容）。
-上线前必须为后端准备 HTTPS 入口，二选一：
+前端由 `scripts/serve_static.py` 提供静态文件，并把 `/api/*` 反向代理到本机后端
+（默认 `SERVICE_PORT=1688`、`WEB_PORT=1689`），浏览器只访问同源地址，因此不再触发
+混合内容拦截，也不需要配置 `VITE_API_BASE_URL`。
 
-1. 域名 + nginx 反代 + Let's Encrypt（推荐）：把 `api.你的域名` A 记录指向 `119.29.189.103`，nginx 反代到 `127.0.0.1:1688`；
-2. 已有 HTTPS 反代/网关地址，直接指向后端端口。
+当前部署未启用 HTTPS。登录与注册只提交 SHA-256 密码摘要，不传明文密码；但摘要和
+登录令牌仍可能被链路窃听。对外提供服务前，建议在反向代理层启用 TLS。
 
-准备好后，在 Pages 构建的 Repository Variables 中配置 `VITE_API_BASE_URL=https://api.你的域名`，重新部署前端即可从「离线模式」切换到真实后端。
+## 五、数据库认证失败（1045）排查
 
-## 五、回滚
+`pymysql.err.OperationalError: (1045, "Access denied for user ...")` 表示 MariaDB
+拒绝了应用配置的账号密码，不是代码逻辑错误。按以下顺序检查服务器 `.env`：
+
+1. `DB_USER`、`DB_PASSWORD`、`DB_HOST` 与 MariaDB 中实际账号一致；密码含 `@` 等
+   特殊字符时，确认 `.env` 中的值未被 shell 或 URL 编码规则改写。
+2. 登录数据库执行 `SELECT User, Host, plugin FROM mysql.user WHERE User='账号';`，
+   确认应用的 `DB_HOST` 对应到正确的 Host 记录（`localhost` 与 `127.0.0.1` 可能是两条记录）。
+3. 若 `plugin` 为 `unix_socket`，需改为密码插件：
+   `ALTER USER '账号'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('新密码');`
+4. 修改后执行 `FLUSH PRIVILEGES;`，再用与后端相同的 host 和密码执行 `SELECT 1` 验证。
+
+建议使用不含特殊字符的数据库密码，避免配置解析差异。
+
+## 六、回滚
 
 - 在服务器上 `git checkout <上一提交>` 后重新执行 `server_deploy.sh`；
 - 或在 Actions 重新运行历史成功的部署工作流。

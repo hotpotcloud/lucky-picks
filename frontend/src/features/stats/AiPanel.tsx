@@ -1,77 +1,59 @@
-/** AI 分析面板：调用后端 deepseek-v4.1-flash 生成统计解读。 */
+/** AI 分析面板：保持现有接口行为，仅升级展示。 */
 
-import { useEffect, useState } from 'react';
-import { Alert, Button, Spin, Tag } from 'antd';
-import { Sparkles } from 'lucide-react';
-import { fetchAiAnalysis, fetchAiConfigured } from '../../api/client';
-import type { AiAnalysisDto } from '../../api/types';
+import { LoaderCircle, Sparkles } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge, EmptyState, Notice } from '../../components/ui/feedback';
+import { useAiPanelLogic } from './useAiPanelLogic';
 
-/** AI 面板属性。 */
 interface AiPanelProps {
   game: string;
   window: number;
 }
 
-/**
- * AI 分析面板。
- * @param props 属性
- */
 const AiPanel = ({ game, window }: AiPanelProps) => {
-  const [available, setAvailable] = useState(false);
-  const [result, setResult] = useState<AiAnalysisDto | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchAiConfigured()
-      .then((value) => {
-        if (!cancelled) {
-          setAvailable(value.available);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAvailable(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const generate = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      setResult(await fetchAiAnalysis(game, window));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'AI 分析失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const logic = useAiPanelLogic(game, window);
 
   return (
-    <div className="ai-panel">
-      <div className="ai-head">
-        <Sparkles size={18} strokeWidth={1.5} />
-        <strong>AI 分析</strong>
-        <Tag color="cyan">deepseek-v4.1-flash</Tag>
-      </div>
-      {!available && <Alert type="warning" showIcon message="服务端 AI 未配置" />}
-      <Button type="primary" loading={loading} disabled={!available} onClick={() => void generate()}>
-        生成 AI 分析
-      </Button>
-      {error && <Alert type="error" showIcon message={error} />}
-      {loading && <Spin />}
-      {result && (
-        <div className="ai-result">
-          <p>{result.content}</p>
-          <small>{result.disclaimer}</small>
+    <Card className="border-slate-700 bg-[#11161d] shadow-none">
+      <CardHeader className="border-b border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-slate-50">
+            <Sparkles className="text-cyan-300" size={18} />
+            AI 分析
+          </CardTitle>
+          <Badge tone={logic.isAvailable ? 'success' : 'warning'}>deepseek-v4.1-flash</Badge>
         </div>
-      )}
-    </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-5">
+        {!logic.isAvailable && <Notice tone="warning">服务端 AI 未配置</Notice>}
+        <Button
+          className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+          disabled={!logic.isAvailable || logic.isLoading}
+          onClick={() => void logic.handleGenerate()}
+        >
+          {logic.isLoading ? (
+            <LoaderCircle className="animate-spin" size={16} />
+          ) : (
+            <Sparkles size={16} />
+          )}
+          {logic.isLoading ? '分析中...' : '生成 AI 分析'}
+        </Button>
+        {logic.error && <Notice tone="error">{logic.error}</Notice>}
+        {logic.result ? (
+          <article className="rounded-md border border-cyan-400/20 bg-cyan-400/5 p-4">
+            <p className="m-0 whitespace-pre-wrap leading-7 text-slate-200">
+              {logic.result.content}
+            </p>
+            <p className="mb-0 mt-4 border-t border-cyan-400/15 pt-3 text-xs leading-5 text-slate-500">
+              {logic.result.disclaimer}
+            </p>
+          </article>
+        ) : (
+          <EmptyState title="暂无 AI 解读" description="生成后将在此展示当前统计窗口的分析。" />
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

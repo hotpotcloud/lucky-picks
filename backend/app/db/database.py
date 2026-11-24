@@ -23,6 +23,9 @@ from loguru import logger
 # PBKDF2 迭代次数（兼顾安全与启动耗时）。
 PBKDF2_ITERATIONS = 120_000
 
+# 新版密码摘要存储标记；旧数据没有该前缀，属于历史明文密码的 PBKDF2 哈希。
+AUTH_DIGEST_SCHEME = "v2$"
+
 
 class InvalidInvitationError(ValueError):
     """邀请码无效或已使用。"""
@@ -128,6 +131,62 @@ def verify_password(password: str, password_hash: str) -> bool:
         "sha256", password.encode("utf-8"), salt.encode("utf-8"), PBKDF2_ITERATIONS
     ).hex()
     return secrets.compare_digest(computed, digest)
+
+
+def hash_auth_digest(password_digest: str) -> str:
+    """对客户端密码摘要做 PBKDF2 加盐哈希。
+
+    Args:
+        password_digest: 前端计算的 SHA-256 摘要。
+
+    Returns:
+        形如 `v2$salt$hash` 的存储串。
+    """
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password_digest.encode("utf-8"),
+        salt.encode("utf-8"),
+        PBKDF2_ITERATIONS,
+    ).hex()
+    return f"{AUTH_DIGEST_SCHEME}{salt}${digest}"
+
+
+def verify_auth_digest(password_digest: str, password_hash: str) -> bool:
+    """校验客户端密码摘要。
+
+    Args:
+        password_digest: 前端计算的 SHA-256 摘要。
+        password_hash: 数据库中的存储串。
+
+    Returns:
+        是否匹配；旧格式哈希一律返回 False，由迁移流程单独处理。
+    """
+    if not password_hash.startswith(AUTH_DIGEST_SCHEME):
+        return False
+    try:
+        salt, digest = password_hash[len(AUTH_DIGEST_SCHEME) :].split("$", 1)
+    except ValueError:
+        return False
+    computed = hashlib.pbkdf2_hmac(
+        "sha256",
+        password_digest.encode("utf-8"),
+        salt.encode("utf-8"),
+        PBKDF2_ITERATIONS,
+    ).hex()
+    return secrets.compare_digest(computed, digest)
+
+
+def is_digest_hash(password_hash: str) -> bool:
+    """判断存储串是否为新版摘要哈希。
+
+    Args:
+        password_hash: 数据库中的存储串。
+
+    Returns:
+        是否为 `v2$` 前缀格式。
+    """
+    return password_hash.startswith(AUTH_DIGEST_SCHEME)
 
 
 class _ConnectionWrapper:
@@ -408,12 +467,71 @@ class Database:
         row = self.connection.execute("SELECT COUNT(*) AS total FROM users").fetchone()
         return int(row["total"]) if row else 0
 
-    def create_user(self, username: str, password: str, role: str = "user") -> int:
+    def count_legacy_password_users(self) -> int:
+        """统计仍使用旧版明文密码哈希的账号数量。
+
+        Returns:
+            需要迁移的账号数量。
+        """
+        row = self.connection.execute(
+            "SELECT COUNT(*) AS total FROM users WHERE password_hash NOT LIKE ?",
+            (f"{AUTH_DIGEST_SCHEME}%",),
+        ).fetchone()
+        return int(row["total"]) if row else 0
+
+    def upgrade_legacy_password(
+        self, username: str, raw_password: str, password_digest: str
+    ) -> bool:
+        """把旧版密码哈希升级为摘要哈希。
+
+        Args:
+            username: 登录名。
+            raw_password: 配置中的原始密码，仅用于校验旧哈希。
+            password_digest: 由同一原始密码派生的客户端摘要。
+
+        Returns:
+            是否完成升级；账号不存在、已是新格式或密码不匹配时返回 False。
+        """
+        user = self.get_user(username)
+        if user is None or is_digest_hash(user.password_hash):
+            return False
+        if not verify_password(raw_password, user.password_hash):
+            return False
+        with self._write_lock:
+            with self.connection:
+                self.connection.execute(
+                    "UPDATE users SET password_hash = ? WHERE id = ?",
+                    (hash_auth_digest(password_digest), user.id),
+                )
+        return True
+
+    def set_password_digest(self, username: str, password_digest: str) -> bool:
+        """直接设置账号的密码摘要（重置密码用）。
+
+        Args:
+            username: 登录名。
+            password_digest: 客户端计算的密码摘要。
+
+        Returns:
+            账号是否存在并完成更新。
+        """
+        user = self.get_user(username.strip())
+        if user is None:
+            return False
+        with self._write_lock:
+            with self.connection:
+                self.connection.execute(
+                    "UPDATE users SET password_hash = ? WHERE id = ?",
+                    (hash_auth_digest(password_digest), user.id),
+                )
+        return True
+
+    def create_user(self, username: str, password_digest: str, role: str = "user") -> int:
         """创建用户。
 
         Args:
             username: 登录名。
-            password: 明文密码。
+            password_digest: 客户端计算的密码摘要。
             role: 角色。
 
         Returns:
@@ -429,7 +547,7 @@ class Database:
                     """,
                     (
                         username,
-                        hash_password(password),
+                        hash_auth_digest(password_digest),
                         role,
                         datetime.now(timezone.utc).isoformat(),
                     ),
@@ -463,13 +581,13 @@ class Database:
         return code
 
     def register_user_with_invitation(
-        self, username: str, password: str, invite_code: str
+        self, username: str, password_digest: str, invite_code: str
     ) -> int:
         """在同一事务内创建普通用户并核销邀请码。
 
         Args:
             username: 登录名。
-            password: 明文密码。
+            password_digest: 客户端计算的密码摘要。
             invite_code: 邀请码明文。
 
         Returns:
@@ -490,7 +608,7 @@ class Database:
                     INSERT INTO users (username, password_hash, role, token_version, created_at)
                     VALUES (?, ?, 'user', 1, ?)
                     """,
-                    (username, hash_password(password), used_at),
+                    (username, hash_auth_digest(password_digest), used_at),
                 )
                 user_id = int(cursor.lastrowid or 0)
                 invitation_cursor = self.connection.execute(

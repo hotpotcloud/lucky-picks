@@ -26,7 +26,16 @@ const NumberBall = ({ value, color, size = 'default', variant }: NumberBallProps
     .filter(Boolean)
     .join(' ');
 
-  return <span className={className}>{formatBall(value)}</span>;
+  return (
+    <span className={className}>
+      <span>{formatBall(value)}</span>
+      {variant ? (
+        <span className="block text-[9px] font-semibold leading-none" aria-hidden="true">
+          {variant === 'banker' ? '胆' : '拖'}
+        </span>
+      ) : null}
+    </span>
+  );
 };
 
 export default NumberBall;

@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from app.ai.views import router as ai_router
+from app.auth.digest import derive_password_digest
 from app.auth.views import router as auth_router
 from app.backtest.views import router as backtest_router
 from app.common.exceptions import ApiError
@@ -36,13 +37,30 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     setup_logging(settings.log_level)
     database = init_database()
+    admin_digest = derive_password_digest(settings.admin_username, settings.admin_password)
     if database.count_users() == 0:
         database.create_user(
             settings.admin_username,
-            settings.admin_password,
+            admin_digest,
             role="admin",
         )
         logger.warning("已创建初始管理员账号（请尽快修改默认密码）")
+    elif database.upgrade_legacy_password(
+        settings.admin_username,
+        settings.admin_password,
+        admin_digest,
+    ):
+        # 旧版本直接存储明文密码的 PBKDF2 哈希，登录协议改为摘要后必须迁移。
+        logger.warning(
+            "管理员密码哈希已升级为摘要认证：username={}",
+            settings.admin_username,
+        )
+    legacy_users = database.count_legacy_password_users()
+    if legacy_users:
+        logger.warning(
+            "仍有 {} 个账号使用旧密码格式，请通过重置脚本更新后再登录",
+            legacy_users,
+        )
     logger.info(
         "服务启动完成：db_type={} draws(redblue)={} draws(frontback)={}",
         settings.db_type,

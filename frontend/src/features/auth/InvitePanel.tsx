@@ -1,73 +1,58 @@
 /** 已登录用户的邀请码生成与复制入口。 */
 
-import { useState } from 'react';
+import { ChevronDown, Copy, KeyRound } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { Notice } from '../../components/ui/feedback';
 import { Input } from '../../components/ui/input';
-import { apiPost } from '../../api/client';
+import { useInvitePanelLogic } from './useInvitePanelLogic';
 
-/** 邀请码创建响应。 */
-interface InvitationResponse {
-  code: string;
-}
-
-/** 已登录用户生成并复制邀请码。 */
 export const InvitePanel = () => {
-  const [inviteCode, setInviteCode] = useState('');
-  const [error, setError] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleGenerate = async () => {
-    setLoading(true);
-    setError('');
-    setFeedback('');
-    try {
-      const response = await apiPost<InvitationResponse>('/api/v1/auth/invitations', {});
-      setInviteCode(response.code);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '邀请码生成失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteCode);
-      setError('');
-      setFeedback('邀请码已复制');
-    } catch {
-      setFeedback('');
-      setError('复制失败，请手动复制邀请码');
-    }
-  };
+  const logic = useInvitePanelLogic();
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button disabled={loading} onClick={() => void handleGenerate()}>
-        {loading ? '生成中...' : '生成邀请码'}
-      </Button>
-      {inviteCode && (
-        <>
-          <Input
-            className="w-48 font-mono"
-            aria-label="邀请码"
-            value={inviteCode}
-            readOnly
-          />
-          <Button variant="outline" onClick={() => void handleCopy()}>
-            复制邀请码
-          </Button>
-        </>
-      )}
-      {(error || feedback) && (
-        <span
-          role="alert"
-          className={error ? 'text-sm text-red-400' : 'text-sm text-cyan-300'}
+    <details className="relative max-w-full">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-cyan-400/50 hover:text-cyan-100">
+        <KeyRound size={16} />
+        邀请管理
+        <ChevronDown size={14} className="ml-auto" />
+      </summary>
+      <div className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] space-y-3 rounded-md border border-slate-700 bg-[#11161d] p-4 shadow-2xl">
+        <div>
+          <p className="m-0 text-sm font-medium text-slate-100">生成邀请码</p>
+          <p className="mb-0 mt-1 text-xs leading-5 text-slate-500">
+            邀请码仅在当前面板展示，请及时复制。
+          </p>
+        </div>
+        <Button
+          className="w-full bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+          disabled={logic.isLoading}
+          onClick={() => void logic.handleGenerate()}
         >
-          {error || feedback}
-        </span>
-      )}
-    </div>
+          <KeyRound size={16} />
+          {logic.isLoading ? '生成中...' : '生成邀请码'}
+        </Button>
+        {logic.inviteCode && (
+          <div className="space-y-2">
+            <Input
+              className="font-mono"
+              aria-label="邀请码"
+              value={logic.inviteCode}
+              readOnly
+            />
+            <code className="sr-only">{logic.inviteCode}</code>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => void logic.handleCopy()}
+            >
+              <Copy size={16} />
+              复制邀请码
+            </Button>
+          </div>
+        )}
+        {logic.error && <Notice tone="error">{logic.error}</Notice>}
+        {logic.feedback && <Notice tone="success">{logic.feedback}</Notice>}
+      </div>
+    </details>
   );
 };

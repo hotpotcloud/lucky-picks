@@ -5,6 +5,12 @@ import { useAuth } from './AuthContext';
 
 vi.mock('./AuthContext');
 
+/** 连续点击右上角水印两次，展开登录表单。 */
+const revealLogin = () => {
+  fireEvent.click(screen.getByRole('button', { name: '登录入口' }));
+  fireEvent.click(screen.getByRole('button', { name: '登录入口' }));
+};
+
 describe('LoginPage', () => {
   const signIn = vi.fn();
   const signUp = vi.fn();
@@ -21,8 +27,11 @@ describe('LoginPage', () => {
     });
   });
 
-  it('默认直接展示登录表单，不预填演示账号', () => {
+  it('默认隐藏登录表单，点击水印两次后展示且不预填账号', () => {
     render(<LoginPage />);
+
+    expect(screen.queryByRole('button', { name: '登录' })).not.toBeInTheDocument();
+    revealLogin();
 
     expect(screen.getByRole('button', { name: '登录' })).toBeInTheDocument();
     expect(screen.getByLabelText('账号 / USER')).toHaveValue('');
@@ -37,6 +46,7 @@ describe('LoginPage', () => {
       }),
     );
     render(<LoginPage />);
+    revealLogin();
 
     fireEvent.click(screen.getByRole('button', { name: '注册账号' }));
     fireEvent.change(screen.getByLabelText('账号 / USER'), { target: { value: 'tester' } });
@@ -57,6 +67,7 @@ describe('LoginPage', () => {
 
   it('注册时按后端规则拦截非法账号', () => {
     render(<LoginPage />);
+    revealLogin();
     fireEvent.click(screen.getByRole('button', { name: '注册账号' }));
     fireEvent.change(screen.getByLabelText('账号 / USER'), { target: { value: 'a b' } });
     fireEvent.change(screen.getByLabelText('密码 / KEY'), { target: { value: 'password' } });
@@ -71,6 +82,7 @@ describe('LoginPage', () => {
 
   it('注册时邀请码必填', () => {
     render(<LoginPage />);
+    revealLogin();
     fireEvent.click(screen.getByRole('button', { name: '注册账号' }));
     expect(screen.getByLabelText('邀请码 / INVITE CODE')).toBeRequired();
   });

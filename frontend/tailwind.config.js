@@ -6,6 +6,22 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: 'var(--card)',
+        border: 'var(--border)',
+        input: 'var(--input)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: 'var(--card-raised)',
+        muted: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: 'var(--accent)',
+        destructive: 'var(--number-red)',
         cyber: {
           bg: '#050b14',
           panel: 'rgba(13, 27, 46, 0.55)',

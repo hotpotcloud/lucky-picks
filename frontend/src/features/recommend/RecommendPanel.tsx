@@ -1,13 +1,15 @@
-/** 智能推荐：策略表单、结果展示与解释。 */
+/** 智能推荐：策略、参数和真实接口结果展示。 */
 
-import { useState } from 'react';
-import { Alert, Button, InputNumber, Segmented, Space, Tag, Typography } from 'antd';
-import { apiPost } from '../../api/client';
-import type { BetDto, RecommendationDto } from '../../api/types';
+import { Cpu, Sparkles } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge, EmptyState, Notice } from '../../components/ui/feedback';
+import { Input } from '../../components/ui/input';
+import { Segmented } from '../../components/ui/segmented';
 import type { DrawItem } from '../data/useDraws';
 import NumberBall from '../picker/components/NumberBall';
+import { useRecommendPanelLogic } from './useRecommendPanelLogic';
 
-/** 策略选项。 */
 const STRATEGIES = [
   { label: '均衡', value: 'balanced' },
   { label: '热号', value: 'hot' },
@@ -16,85 +18,94 @@ const STRATEGIES = [
   { label: '综合', value: 'bayesian' },
 ];
 
-/** 推荐面板属性。 */
 interface RecommendPanelProps {
   game: string;
   draws: DrawItem[];
 }
 
-/**
- * 推荐面板。
- * @param props 属性
- */
 const RecommendPanel = ({ game }: RecommendPanelProps) => {
-  const [strategy, setStrategy] = useState('balanced');
-  const [count, setCount] = useState(3);
-  const [seed, setSeed] = useState<number | null>(null);
-  const [bets, setBets] = useState<BetDto[]>([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const generate = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const result = await apiPost<RecommendationDto>('/api/v1/recommendations', {
-        game,
-        mode: 'single',
-        strategy,
-        window: 100,
-        count,
-        seed: seed ?? undefined,
-      });
-      setBets(result.bets);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '生成失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const logic = useRecommendPanelLogic(game);
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Segmented
-        block
-        options={STRATEGIES}
-        value={strategy}
-        onChange={(value) => setStrategy(String(value))}
-      />
-      <Space wrap>
-        <Typography.Text>注数</Typography.Text>
-        <InputNumber min={1} max={10} value={count} onChange={(value) => setCount(value ?? 3)} />
-        <Typography.Text>种子</Typography.Text>
-        <InputNumber
-          min={1}
-          placeholder="留空随机"
-          value={seed ?? undefined}
-          onChange={(value) => setSeed(value)}
-        />
-        <Button type="primary" loading={loading} onClick={() => void generate()}>
-          生成推荐
-        </Button>
-      </Space>
-      {error && <Alert type="error" showIcon message={error} />}
-      {bets.map((bet, index) => (
-        <div className="ticket-row" key={index}>
-          <Typography.Text type="secondary">{index + 1}.</Typography.Text>
-          <Space wrap size={4}>
-            {bet.areas.map((area) =>
-              area.numbers.map((number) => (
-                <NumberBall
-                  key={`${area.key}-${number}`}
-                  value={number}
-                  color={area.key === 'red' || area.key === 'front' ? 'red' : 'blue'}
-                />
-              )),
-            )}
-          </Space>
-          <Tag>{strategy}</Tag>
+    <Card className="border-slate-700 bg-[#11161d] shadow-none">
+      <CardHeader className="gap-3 border-b border-slate-800">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-slate-50">
+            <Cpu className="text-emerald-300" size={18} />
+            智能推荐
+          </CardTitle>
+          <Badge tone="info">真实数据</Badge>
         </div>
-      ))}
-    </Space>
+        <p className="m-0 text-sm text-slate-400">配置策略与随机种子，结果由推荐服务生成。</p>
+      </CardHeader>
+      <CardContent className="space-y-5 pt-5">
+        <Segmented
+          label="推荐策略"
+          options={STRATEGIES}
+          value={logic.strategy}
+          onChange={(value) => logic.setStrategy(String(value))}
+        />
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+          <label className="space-y-2 text-sm text-slate-300">
+            <span>推荐注数</span>
+            <Input
+              type="number"
+              min={1}
+              max={10}
+              value={logic.count}
+              onChange={(event) => logic.handleCountChange(Number(event.target.value))}
+            />
+          </label>
+          <label className="space-y-2 text-sm text-slate-300">
+            <span>随机种子</span>
+            <Input
+              type="number"
+              min={1}
+              placeholder="留空随机"
+              value={logic.seed ?? ''}
+              onChange={(event) => logic.handleSeedChange(event.target.value)}
+            />
+          </label>
+          <Button
+            className="h-11 bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+            disabled={logic.isLoading}
+            onClick={() => void logic.handleGenerate()}
+          >
+            <Sparkles size={16} />
+            {logic.isLoading ? '生成中...' : '生成推荐'}
+          </Button>
+        </div>
+        {logic.error && <Notice tone="error">{logic.error}</Notice>}
+        {logic.bets.length === 0 ? (
+          <EmptyState title="等待生成推荐" description="选择策略后生成 1-10 注推荐结果。" />
+        ) : (
+          <div className="space-y-2">
+            {logic.bets.map((bet, index) => (
+              <div
+                className="flex flex-wrap items-center gap-3 border-b border-slate-800 py-3 last:border-0"
+                key={`${logic.strategy}-${index}`}
+              >
+                <span className="w-7 font-mono text-xs text-slate-500">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className="flex flex-1 flex-wrap gap-1">
+                  {bet.areas.flatMap((area) =>
+                    area.numbers.map((number) => (
+                      <NumberBall
+                        key={`${area.key}-${number}`}
+                        value={number}
+                        color={area.key === 'red' || area.key === 'front' ? 'red' : 'blue'}
+                      />
+                    )),
+                  )}
+                </div>
+                <Badge>{logic.strategy}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

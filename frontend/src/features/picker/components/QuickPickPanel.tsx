@@ -1,4 +1,6 @@
-import { Button, InputNumber, Radio, Space, Typography } from 'antd';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Segmented } from '../../../components/ui/segmented';
 import { QUICK_PICK_MAX, QUICK_PICK_MIN } from '../constants';
 import { STRATEGY_LABELS } from '../labels';
 import type { QuickStrategy } from '../types';
@@ -28,7 +30,7 @@ interface QuickPickPanelProps {
 
 /**
  * 机选参数面板：注数与策略。
- * 注数范围由常量统一约束，InputNumber 与后端校验保持一致。
+ * 注数范围由常量统一约束，与后端校验保持一致。
  */
 const QuickPickPanel = ({
   count,
@@ -40,46 +42,40 @@ const QuickPickPanel = ({
   onConstraintsChange,
   onQuickFill,
 }: QuickPickPanelProps) => (
-  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-    <Button block onClick={onQuickFill}>
+  <div className="space-y-4">
+    <Button className="w-full" type="button" onClick={onQuickFill}>
       机选填充
     </Button>
-    <div>
-      <Typography.Text strong>机选注数</Typography.Text>
-      <InputNumber
+    <label className="block space-y-2 text-sm font-medium text-slate-200">
+      <span>机选注数</span>
+      <Input
+        type="number"
         aria-label="机选注数"
         min={QUICK_PICK_MIN}
         max={QUICK_PICK_MAX}
-        precision={0}
         step={1}
         value={count}
-        style={{ width: '100%', marginTop: 8 }}
-        onChange={(value) => {
-          // InputNumber 清空时返回 null，回退到最小值，避免出现非法状态
-          onCountChange(value ?? QUICK_PICK_MIN);
+        onChange={(event) => {
+          const nextValue = event.currentTarget.valueAsNumber;
+          onCountChange(Number.isNaN(nextValue) ? QUICK_PICK_MIN : nextValue);
         }}
       />
-    </div>
-    <div>
-      <Typography.Text strong>选号策略</Typography.Text>
-      <Radio.Group
-        optionType="button"
-        buttonStyle="solid"
-        style={{ width: '100%', marginTop: 8 }}
-        value={strategy}
-        onChange={(event) => onStrategyChange(event.target.value as QuickStrategy)}
-        options={[
-          { label: STRATEGY_LABELS.random, value: 'random' },
-          { label: STRATEGY_LABELS.balanced, value: 'balanced' },
-        ]}
-      />
-    </div>
+    </label>
+    <Segmented
+      label="选号策略"
+      value={strategy}
+      onChange={(nextValue) => onStrategyChange(nextValue as QuickStrategy)}
+      options={[
+        { label: STRATEGY_LABELS.random, value: 'random' },
+        { label: STRATEGY_LABELS.balanced, value: 'balanced' },
+      ]}
+    />
     <QuickConstraintsPanel
       primaryArea={primaryArea}
       value={constraints}
       onChange={onConstraintsChange}
     />
-  </Space>
+  </div>
 );
 
 export default QuickPickPanel;

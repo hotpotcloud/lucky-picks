@@ -4,6 +4,7 @@
  */
 
 import type { AiAnalysisDto, Envelope, LoginResponse } from './types';
+import { derivePasswordDigest } from './passwordDigest';
 
 /** 后端服务地址（未配置则使用同源相对路径）。 */
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '';
@@ -54,12 +55,11 @@ const parseEnvelope = async <T>(response: Response): Promise<Envelope<T>> => {
 /**
  * 调用公开认证接口。
  * @param path 接口路径
- * @param username 账号
- * @param password 密码
+ * @param payload 已派生的认证载荷（不含明文密码）
  */
 const authRequest = async (
   path: string,
-  payload: Record<string, string>,
+  payload: Record<string, string | number>,
 ): Promise<LoginResponse> => {
   const response = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
@@ -80,7 +80,9 @@ const authRequest = async (
  * @returns 登录响应
  */
 export const login = (username: string, password: string): Promise<LoginResponse> =>
-  authRequest('/api/v1/auth/login', { username, password });
+  derivePasswordDigest(username, password).then((passwordDigest) =>
+    authRequest('/api/v1/auth/login', { username: username.trim(), passwordDigest }),
+  );
 
 /**
  * 注册普通用户并直接获取登录令牌。
@@ -93,7 +95,14 @@ export const register = (
   password: string,
   inviteCode: string,
 ): Promise<LoginResponse> =>
-  authRequest('/api/v1/auth/register', { username, password, inviteCode });
+  derivePasswordDigest(username, password).then((passwordDigest) =>
+    authRequest('/api/v1/auth/register', {
+      username: username.trim(),
+      passwordDigest,
+      passwordLength: password.length,
+      inviteCode,
+    }),
+  );
 
 /**
  * 退出登录（服务端令牌版本递增）。

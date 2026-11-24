@@ -2,6 +2,7 @@
 
 from fastapi.testclient import TestClient
 
+from app.auth.digest import derive_password_digest
 from app.db.database import Database
 
 
@@ -14,7 +15,13 @@ def login(client: TestClient) -> str:
     Returns:
         登录令牌。
     """
-    response = client.post("/api/v1/auth/login", json={"username": "admin", "password": "888888"})
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "username": "admin",
+            "passwordDigest": derive_password_digest("admin", "888888"),
+        },
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["code"] == 0
@@ -31,9 +38,24 @@ def test_login_and_me(client: TestClient, database: Database) -> None:
 
 def test_wrong_password(client: TestClient) -> None:
     """错误密码返回 401。"""
-    response = client.post("/api/v1/auth/login", json={"username": "admin", "password": "wrong"})
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "username": "admin",
+            "passwordDigest": derive_password_digest("admin", "wrong"),
+        },
+    )
     assert response.status_code == 401
     assert response.json()["code"] == 40100
+
+
+def test_login_rejects_plaintext_password(client: TestClient) -> None:
+    """登录接口不再接受明文密码字段，避免明文进入请求日志。"""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "888888"},
+    )
+    assert response.status_code == 422
 
 
 def test_draws_requires_auth(client: TestClient) -> None:

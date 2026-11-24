@@ -1,4 +1,5 @@
-import { Alert, Button, Space, Tag, Tooltip, Typography } from 'antd';
+import { Button } from '../../../components/ui/button';
+import { Badge, Notice } from '../../../components/ui/feedback';
 import type { SelectionInfo } from '../generator';
 import type { AreaKey, GameConfig, TicketNumbers } from '../types';
 import NumberGrid from './NumberGrid';
@@ -51,59 +52,49 @@ const BankerPanel = ({
   };
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Button block onClick={onQuickFill}>
+    <div className="space-y-5">
+      <Button className="w-full" type="button" onClick={onQuickFill}>
         机选填充
       </Button>
-      <div>
-        <Typography.Text strong>
-          {primary.label}（胆码 {banker.length}，拖码 {drag.length}）
-        </Typography.Text>
-        <Space wrap size={4} style={{ marginLeft: 8 }}>
-          <Tooltip title={`点击号码切换：未选 → 拖码 → 胆码 → 未选；胆码必须少于 ${primary.count} 个`}>
-            <Tag color="gold">胆码</Tag>
-          </Tooltip>
-          <Tooltip title="未选中的号码可加入拖码">
-            <Tag color="blue">拖码</Tag>
-          </Tooltip>
-        </Space>
-        <div style={{ marginTop: 8 }}>
-          <NumberGrid
-            area={primary}
-            selected={[]}
-            statusOf={statusOf}
-            onToggle={onCycle}
-          />
+      <section className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-semibold text-slate-100">
+            {primary.label}（胆码 {banker.length}，拖码 {drag.length}）
+          </h3>
+          <Badge tone="warning">胆</Badge>
+          <Badge tone="info">拖</Badge>
         </div>
-      </div>
+        <p className="text-xs text-slate-400">
+          点击循环：未选 → 拖码 → 胆码 → 未选；胆码少于 {primary.count} 个
+        </p>
+        <NumberGrid area={primary} selected={[]} statusOf={statusOf} onToggle={onCycle} />
+      </section>
 
       {secondaryAreas.map((area) => {
         const selected = selections[area.key] ?? [];
         return (
-          <div key={area.key}>
-            <Typography.Text strong>
+          <section className="space-y-2" key={area.key}>
+            <h3 className="text-sm font-semibold text-slate-100">
               {area.label}（已选 {selected.length}，至少 {area.count}）
-            </Typography.Text>
-            <div style={{ marginTop: 8 }}>
-              <NumberGrid
-                area={area}
-                selected={selected}
-                onToggle={(value) => onToggle(area.key, value)}
-              />
-            </div>
-          </div>
+            </h3>
+            <NumberGrid
+              area={area}
+              selected={selected}
+              onToggle={(value) => onToggle(area.key, value)}
+            />
+          </section>
         );
       })}
 
       {info.valid ? (
-        <Space wrap>
-          <Tag color="blue">共 {info.combinations} 注</Tag>
-          <Tag color="gold">参考金额 {info.amount} 元</Tag>
-        </Space>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone="info">共 {info.combinations} 注</Badge>
+          <Badge tone="warning">参考金额 {info.amount} 元</Badge>
+        </div>
       ) : (
-        <Alert type="warning" showIcon message={info.error} />
+        <Notice tone="warning">{info.error}</Notice>
       )}
-    </Space>
+    </div>
   );
 };
 

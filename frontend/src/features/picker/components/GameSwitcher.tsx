@@ -1,6 +1,6 @@
 import { GAME_CONFIGS, GAME_ORDER } from '../config';
 import type { GameId } from '../types';
-import { Segmented } from 'antd';
+import { Segmented } from '../../../components/ui/segmented';
 
 /** 玩法切换组件属性。 */
 interface GameSwitcherProps {
@@ -12,7 +12,6 @@ interface GameSwitcherProps {
 
 /**
  * 玩法切换与规则说明。
- * 使用 antd Segmented，避免自创切换控件。
  */
 const GameSwitcher = ({ value, onChange }: GameSwitcherProps) => {
   const options = GAME_ORDER.map((id) => ({
@@ -20,14 +19,12 @@ const GameSwitcher = ({ value, onChange }: GameSwitcherProps) => {
     value: id,
   }));
   return (
-    <div>
-      <Segmented
-        block
-        options={options}
-        value={value}
-        onChange={(next) => onChange(next as GameId)}
-      />
-    </div>
+    <Segmented
+      label="选择玩法"
+      options={options}
+      value={value}
+      onChange={(next) => onChange(next as GameId)}
+    />
   );
 };
 

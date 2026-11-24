@@ -1,20 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { App as AntdApp, ConfigProvider } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { AuthProvider } from './features/auth/AuthContext';
 
-/** 以与生产入口一致的 Provider 包裹渲染应用。 */
+/** 以生产入口一致的 Provider 包裹渲染应用。 */
 const renderApp = () =>
   render(
-    <ConfigProvider locale={zhCN}>
-      <AntdApp>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </AntdApp>
-    </ConfigProvider>,
+    <AuthProvider>
+      <App />
+    </AuthProvider>,
   );
 
 describe('App 交互（TC-013 / TC-014）', () => {
@@ -53,14 +47,14 @@ describe('App 交互（TC-013 / TC-014）', () => {
     renderApp();
     await screen.findByText('tester');
     expect(screen.queryByText(/必中|预测中奖/)).not.toBeInTheDocument();
-    expect(screen.getAllByText('选号').length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: '选号工作台' })).toBeInTheDocument();
   });
 
   it('复式号码不足时禁用生成，补齐后按组合注数生成（TC-005）', async () => {
     renderApp();
     await screen.findByText('tester');
 
-    fireEvent.click(screen.getByRole('radio', { name: '复式' }));
+    fireEvent.click(screen.getByRole('button', { name: '复式' }));
     expect(screen.getByText('红球至少选择 6 个号码')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '生成号码' })).toBeDisabled();
 
@@ -83,21 +77,20 @@ describe('App 交互（TC-013 / TC-014）', () => {
     renderApp();
     await screen.findByText('tester');
 
-    fireEvent.click(screen.getByRole('radio', { name: '复式' }));
+    fireEvent.click(screen.getByRole('button', { name: '复式' }));
     const redGrid = screen.getByRole('group', { name: '红球选号' });
     fireEvent.click(within(redGrid).getAllByRole('button')[0]);
     expect(screen.getByText(/红球（已选 1/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('radio', { name: '前后玩法' }));
+    fireEvent.click(screen.getByRole('button', { name: '前后玩法' }));
 
-    // 切换后回到机选模式，展示前后玩法规则
     expect(screen.getByText('机选注数')).toBeInTheDocument();
-    expect(screen.getByText('前后玩法').closest('.ant-segmented-item')).toHaveClass(
-      'ant-segmented-item-selected',
+    expect(screen.getByRole('button', { name: '前后玩法' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
 
-    // 再切回复式，确认旧的红色号码确实被清空
-    fireEvent.click(screen.getByRole('radio', { name: '复式' }));
+    fireEvent.click(screen.getByRole('button', { name: '复式' }));
     expect(screen.getByText(/前区（已选 0/)).toBeInTheDocument();
     expect(screen.queryByText(/红球（已选/)).not.toBeInTheDocument();
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());

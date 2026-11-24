@@ -72,9 +72,9 @@
 - 全局暗黑科技风：Ant Design darkAlgorithm + 深空蓝渐变背景 + 网格纹理 + 扫描线动画。
 - 磨玻璃态：卡片使用 `backdrop-filter: blur` 与半透明面板。
 - shadcn 风格组件：Button / Card / Input（cva + Radix Slot + Tailwind）。
-- 登录页科技风：渐变标题、脉冲辉光、角标装饰；默认账号 admin / 888888。
-- 水印：四角财神图片（自绘 SVG 矢量），88px 淡色，不拦截交互；登录页右上角财神为暗号按钮。
-- 登录暗号：默认不显示登录框；点击右上角财神后以 360ms 自定义贝塞尔动画展示登录框，之后才允许登录。
+- 登录页石墨黑科技风：默认不展示登录表单，右上角仅保留淡色财神水印，无 hover 效果。
+- 登录暗号：连续点击水印两次后，以 900ms 缓动动画展开登录框，水印移入登录框空白区域。
+- 登录协议：浏览器计算 SHA-256 摘要后提交，网络请求不携带明文密码；注册需邀请码。
 - 玩法与功能区分：玩法仅「红蓝 / 前后」；机选是算法功能，单式/复式/胆拖均提供「机选填充」。
 - 历史开奖 tab 内含走势图分析；已移除免责声明。
 - UI 依据 ui-ux-pro-max 与 high-end-visual-design skill：Ethereal Glass、Double-Bezel、语义 token、去除装饰性循环动画、仅 transform/opacity 动效、prefers-reduced-motion。
