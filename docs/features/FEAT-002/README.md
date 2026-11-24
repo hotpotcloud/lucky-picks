@@ -73,7 +73,11 @@
 - 磨玻璃态：卡片使用 `backdrop-filter: blur` 与半透明面板。
 - shadcn 风格组件：Button / Card / Input（cva + Radix Slot + Tailwind）。
 - 登录页科技风：渐变标题、脉冲辉光、角标装饰；默认账号 admin / 888888。
-- 水印：四角「财神」字样，88px，`rgba(34,211,238,0.06)` 淡色，不拦截交互。
+- 水印：四角财神图片（自绘 SVG 矢量），88px 淡色，不拦截交互；登录页右上角财神为暗号按钮。
+- 登录暗号：默认不显示登录框；点击右上角财神后以 360ms 自定义贝塞尔动画展示登录框，之后才允许登录。
+- 玩法与功能区分：玩法仅「红蓝 / 前后」；机选是算法功能，单式/复式/胆拖均提供「机选填充」。
+- 历史开奖 tab 内含走势图分析；已移除免责声明。
+- UI 依据 ui-ux-pro-max 与 high-end-visual-design skill：Ethereal Glass、Double-Bezel、语义 token、去除装饰性循环动画、仅 transform/opacity 动效、prefers-reduced-motion。
 
 ## 待需求提出方确认
 
