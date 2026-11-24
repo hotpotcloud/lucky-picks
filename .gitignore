@@ -38,6 +38,7 @@ build/
 .umi/
 .umi-production/
 .cache/
+.vite/
 
 # ---------- IDE / OS ----------
 .idea/
