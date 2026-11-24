@@ -52,9 +52,14 @@ cd frontend && pnpm build     → 构建成功（dist/）
 - 复式结果不再展示单注分析；quick 注数非法时按钮即时禁用。
 - 移除未使用依赖（@ant-design/icons、@testing-library/user-event）与死代码；拆分 react/antd/vendor chunk。
 
-### 线上验证
+### 线上验证（2026-11-23）
 
-部署后补充：Actions 运行结果、线上 URL、控制台错误检查。
+- GitHub Actions：main 推送运行成功（verify + deploy，约 1 分钟）
+- 线上地址：https://hotpotcloud.github.io/lucky-picks/ 返回 200
+- 页面标题、JS/CSS 资源均 200，浏览器控制台 0 错误
+- 线上实测：均衡机选生成 1 注（奇偶 3:3、大小 3:3、和值 103、三区 2:2:2），保存历史成功
+- 部署前置问题：用户站 `hotpotcloud.github.io` 的自定义域名 `happyjuzi.cn` 无法解析，导致项目页 301；经需求提出方确认后移除该自定义域名，项目页恢复可用
+- 验收记录：`acceptance-report.md`（产品 UAT 待需求提出方确认）
 
 ## 遗留问题
 
