@@ -4,7 +4,8 @@
  * 检查内容：
  * 1. 受限汉字（Unicode 转义写入，避免脚本自身出现字面量）；
  * 2. 受限词对应的英文写法（通过字符码还原，避免字面量出现在脚本里）；
- * 3. 受限英文单词本身。
+ * 3. 受限英文单词本身；
+ * 4. 外部仓库链接与已知第三方仓库标识（统一使用「项目 A–N」代号）。
  *
  * 说明：仓库内不保留任何官方域名、接口路径、字段名或第三方仓库名等可追溯信息，
  * 因此本检查不设例外白名单；如将来确需引用外部专有名词，
@@ -75,6 +76,27 @@ const SCAN_EXTENSIONS = new Set([
   '.sh',
 ]);
 
+/**
+ * 已知的第三方仓库标识（字符码还原，避免脚本自身出现字面量）。
+ * 仓库内统一使用「项目 A–N」代号，不保留原始仓库标识与链接。
+ */
+const EXTERNAL_REPO_TOKENS = [
+  'github.com/',
+  'daletou-predictor',
+  'lucky_ball',
+  'Liang-yc/ssq',
+  'AaronJny/lotto',
+  'MachineSelection',
+  'Miracle_Lottery',
+  'tf-lottery',
+  'LotteryTrend',
+  'UnionLotto',
+  'Double-Color-Ball-AI',
+  'lotterygrabber',
+  'lottery-ai-simulator',
+  'LotteryPrediction',
+].map((token) => word(Array.from(token).map((char) => char.charCodeAt(0))));
+
 /** 受限模式。 */
 const BANNED_PATTERNS = [
   { name: '受限汉字表达', regex: new RegExp(RESTRICTED_HANZI) },
@@ -86,6 +108,9 @@ const BANNED_PATTERNS = [
   { name: '受限英文短语 C', regex: new RegExp(`${PART_F}[\\s-]?${PART_G}`, 'i') },
   { name: '受限英文单词', regex: new RegExp(WORD_A, 'i') },
 ];
+
+/** 外部仓库标识（按子串匹配，大小写不敏感）。 */
+const EXTERNAL_REPO_PATTERNS = EXTERNAL_REPO_TOKENS;
 
 /**
  * 例外白名单（当前为空）。
@@ -130,15 +155,20 @@ const violations = [];
 for (const file of collectFiles(REPO_ROOT)) {
   const content = readFileSync(file, 'utf-8');
   content.split(/\r?\n/).forEach((line, index) => {
-    for (const { name, regex } of BANNED_PATTERNS) {
-      if (regex.test(line) && !isAllowed(line)) {
-        violations.push({
-          file: relative(REPO_ROOT, file),
-          line: index + 1,
-          rule: name,
-          text: line.trim().slice(0, 120),
-        });
-      }
+    const lowered = line.toLowerCase();
+    const hits = [
+      ...BANNED_PATTERNS.filter(({ regex }) => regex.test(line)).map(({ name }) => name),
+      ...EXTERNAL_REPO_PATTERNS.filter((token) => lowered.includes(token.toLowerCase())).map(
+        () => '外部仓库标识或链接',
+      ),
+    ];
+    if (hits.length > 0 && !isAllowed(line)) {
+      violations.push({
+        file: relative(REPO_ROOT, file),
+        line: index + 1,
+        rule: [...new Set(hits)].join(' / '),
+        text: line.trim().slice(0, 120),
+      });
     }
   });
 }
