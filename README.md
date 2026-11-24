@@ -61,7 +61,7 @@ This project must not contain the names of the real-world games it models, nor a
 | Category wording for the product | number picking / number advisor / 选号 |
 | Official upstream sources | `官方数据源 A` / `官方数据源 B` |
 
-External proper nouns (third-party repository names, upstream protocol field names, official source URLs) are cited as-is because they cannot be renamed, and they are not product copy.
+The repository also keeps no traceable information: official domains, API paths, upstream field names and third-party repository names are not stored in the repository (the research originals are kept locally by the developer). The check therefore has no exception list.
 
 The policy is enforced by `frontend/scripts/check-terminology.mjs`, which runs in CI.
 

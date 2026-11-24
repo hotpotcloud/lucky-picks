@@ -1,14 +1,14 @@
 /**
- * 术语合规检查：确保仓库内不出现受限字样。
+ * 术语合规检查：确保仓库内不出现受限字样与可追溯线索。
  *
- * 受限内容：
- * - 任何含受限汉字的表达（对应真实游戏名、彩票/福彩/体彩等），此处以 Unicode 转义书写；
- * - 真实游戏名的英文写法（Double Color Ball / Super Lotto / Union Lotto）；
- * - 我们自己撰写的英文 "lottery" 表述。
+ * 检查内容：
+ * 1. 受限汉字（Unicode 转义写入，避免脚本自身出现字面量）；
+ * 2. 受限词对应的英文写法（通过字符码还原，避免字面量出现在脚本里）；
+ * 3. 受限英文单词本身。
  *
- * 例外（外部专有名词，无法重命名且非产品文案）：
- * - 第三方仓库名（如 .../tf-lottery、.../LotteryTrend）；
- * - 官方来源域名与上游接口字段名（如 lottery.gov.cn、lotteryDrawNum）。
+ * 说明：仓库内不保留任何官方域名、接口路径、字段名或第三方仓库名等可追溯信息，
+ * 因此本检查不设例外白名单；如将来确需引用外部专有名词，
+ * 需先在 ALLOW_LITERALS 中登记并写明理由。
  *
  * 用法：node scripts/check-terminology.mjs
  * 退出码：0 = 通过；1 = 存在违规。
@@ -19,6 +19,25 @@ import { extname, join, relative, resolve } from 'node:path';
 
 /** 仓库根目录（本脚本位于 frontend/scripts 下）。 */
 const REPO_ROOT = resolve(import.meta.dirname, '..', '..');
+
+/**
+ * 通过字符码还原字符串，避免受限词以字面量形式出现在脚本源码里。
+ * @param {number[]} codes 字符码数组
+ * @returns {string} 还原后的字符串
+ */
+const word = (codes) => codes.map((code) => String.fromCharCode(code)).join('');
+
+/** 受限汉字。 */
+const RESTRICTED_HANZI = word([0x5f69]);
+
+/** 受限英文单词与短语（字符码还原）。 */
+const WORD_A = word([0x6c, 0x6f, 0x74, 0x74, 0x65, 0x72, 0x79]);
+const PART_B = word([0x44, 0x6f, 0x75, 0x62, 0x6c, 0x65]);
+const PART_C = word([0x43, 0x6f, 0x6c, 0x6f, 0x72]);
+const PART_D = word([0x42, 0x61, 0x6c, 0x6c]);
+const PART_E = word([0x53, 0x75, 0x70, 0x65, 0x72]);
+const PART_F = word([0x55, 0x6e, 0x69, 0x6f, 0x6e]);
+const PART_G = word([0x4c, 0x6f, 0x74, 0x74, 0x6f]);
 
 /** 扫描时跳过的目录。 */
 const SKIP_DIRS = new Set([
@@ -33,7 +52,7 @@ const SKIP_DIRS = new Set([
   '.next',
 ]);
 
-/** 扫描时跳过的文件（本检查脚本自身包含受限模式的写法）。 */
+/** 扫描时跳过的文件（脚本自身）。 */
 const SKIP_FILES = new Set(['check-terminology.mjs']);
 
 /** 参与扫描的文件扩展名。 */
@@ -56,45 +75,23 @@ const SCAN_EXTENSIONS = new Set([
   '.sh',
 ]);
 
-/** 受限汉字（Unicode 转义，避免脚本自身出现该字面量）。 */
-const RESTRICTED_HANZI = '\u5f69';
-
 /** 受限模式。 */
 const BANNED_PATTERNS = [
   { name: '受限汉字表达', regex: new RegExp(RESTRICTED_HANZI) },
-  { name: '英文游戏名 Double Color Ball', regex: /double[\s-]?color[\s-]?ball/i },
-  { name: '英文游戏名 Super Lotto', regex: /super[\s-]?lotto/i },
-  { name: '英文游戏名 Union Lotto', regex: /union[\s-]?lotto/i },
-  { name: '英文 lottery 表述', regex: /lottery/i },
+  {
+    name: '受限英文短语 A',
+    regex: new RegExp(`${PART_B}[\\s-]?${PART_C}[\\s-]?${PART_D}`, 'i'),
+  },
+  { name: '受限英文短语 B', regex: new RegExp(`${PART_E}[\\s-]?${PART_G}`, 'i') },
+  { name: '受限英文短语 C', regex: new RegExp(`${PART_F}[\\s-]?${PART_G}`, 'i') },
+  { name: '受限英文单词', regex: new RegExp(WORD_A, 'i') },
 ];
 
 /**
- * 例外规则：命中即视为外部专有名词，不算违规。
- * 只允许「明确列出的第三方仓库名」「官方域名」「上游接口字段名」三类，
- * 我们自己撰写的同义写法仍会被拦截。
+ * 例外白名单（当前为空）。
+ * 登记后需写明引用理由与范围，避免成为绕过检查的后门。
  */
-const ALLOW_LITERALS = [
-  'Double-Color-Ball-AI',
-  'UnionLotto',
-  'LotteryTrend',
-  'Miracle_Lottery',
-  'tf-lottery',
-  'lotterygrabber',
-  'lottery-ai-simulator',
-  'LotteryPrediction',
-  'Liang-yc/ssq',
-  'daletou-predictor',
-  'lucky_ball',
-  'AaronJny/lotto',
-  'MachineSelection',
-];
-
-const ALLOW_PATTERNS = [
-  /lotteryDraw/i,
-  /lottery\.gov\.cn/i,
-  /sporttery\.cn/i,
-  /cwl\.gov\.cn/i,
-];
+const ALLOW_LITERALS = [];
 
 /**
  * 判断一行是否命中例外规则。
@@ -103,8 +100,7 @@ const ALLOW_PATTERNS = [
  */
 const isAllowed = (line) => {
   const lowered = line.toLowerCase();
-  const literalHit = ALLOW_LITERALS.some((literal) => lowered.includes(literal.toLowerCase()));
-  return literalHit || ALLOW_PATTERNS.some((pattern) => pattern.test(line));
+  return ALLOW_LITERALS.some((literal) => lowered.includes(literal.toLowerCase()));
 };
 
 /**
@@ -152,8 +148,8 @@ if (violations.length > 0) {
   for (const item of violations) {
     console.error(`  ${item.file}:${item.line} [${item.rule}] ${item.text}`);
   }
-  console.error('\n请使用中性术语（红蓝玩法 / 前后玩法 / 选号 / 官方数据源 A|B）改写。');
+  console.error('\n请使用中性术语改写，并移除官方域名、接口路径、字段名与第三方仓库名等可追溯信息。');
   process.exit(1);
 }
 
-console.log('术语合规检查通过：未发现受限字样。');
+console.log('术语合规检查通过：未发现受限字样或可追溯线索。');

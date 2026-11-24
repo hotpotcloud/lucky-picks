@@ -84,8 +84,8 @@ backend/
 │   ├── draws/
 │   │   ├── adapters/
 │   │   │   ├── base.py         # 数据源接口
-│   │   │   ├── cwl.py          # 官方数据源 A 适配器
-│   │   │   └── sporttery.py    # 官方数据源 B 适配器
+│   │   │   ├── source_a.py     # 官方数据源 A 适配器
+│   │   │   └── source_b.py     # 官方数据源 B 适配器
 │   │   ├── service.py          # 导入、查询、最新一期
 │   │   ├── crud.py
 │   │   ├── schemas.py
@@ -150,7 +150,7 @@ class Draw(SQLModel, table=True):
     numbers: dict                              # {"red": [...], "blue": [...]}
     sales: int | None = None
     pool: int | None = None
-    source: str                                # cwl / sporttery
+    source: str                                # source_a / source_b
     fetched_at: datetime
     # 唯一约束 (game, issue)
 ```
@@ -161,7 +161,7 @@ class Draw(SQLModel, table=True):
 {
   "game": "redblue",
   "version": "2026-11-23T13:30:00Z",
-  "source": "https://www.cwl.gov.cn/...",
+  "source": "official-source-a",
   "draws": [
     {
       "issue": "2026134",
@@ -188,8 +188,8 @@ class DrawSource(Protocol):
     async def fetch(self, limit: int) -> list[RawDraw]: ...
 ```
 
-- 官方数据源 A：`findDrawNotice`，按 `pageNo/pageSize` 翻页，解析 `code/date/red/blue/sales/poolmoney`。
-- 官方数据源 B：`getHistoryPageListV1.qry`，`gameNo=85`，解析 `lotteryDrawNum/lotteryDrawResult/lotteryDrawTime/totalSaleAmount/poolBalance`。
+- 官方数据源 A：开奖历史查询接口，支持分页拉取，字段语义为「期号 / 开奖日期 / 主区号码 / 副区号码 / 销售额 / 奖池余额」。
+- 官方数据源 B：开奖历史查询接口，字段语义为「期号 / 开奖号码 / 开奖时间 / 销售额 / 奖池余额」。
 - 请求头带 UA 与官方 Referer；超时 10s，重试 3 次（指数退避）；失败不写文件。
 - 校验：期号唯一、号码数量/范围/不重复、日期可解析、开奖结果长度正确；不合法整批拒绝。
 

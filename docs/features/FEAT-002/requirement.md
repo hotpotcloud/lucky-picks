@@ -109,10 +109,9 @@ v1（FEAT-001）是纯前端随机/均衡选号工具，没有历史数据、没
 - 前端为避免一次渲染/枚举过多组合，展示与「一键带入」限制前 100 注预览；真实注数、金额由后端计算，不受预览限制。
 - 推荐与回测同样受单票金额上限约束。
 - 官方来源：
-  - 红蓝玩法游戏规则：<https://www.cwl.gov.cn/c/2026/01/29/417937.shtml>
-  - 官方数据源 B 公开规则文件：<https://www.lottery.gov.cn/bzzx/yxgz/20191119/1002858.html>
-  - 官方数据源 A 开奖查询接口（服务端使用）：`https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice`
-  - 官方数据源 B 开奖查询接口（服务端使用）：`https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry`
+  - 官方数据源 A：公开规则文件 + 开奖历史查询接口（具体地址保存在开发者本地的调研记录中，不纳入仓库）
+  - 官方数据源 B：公开规则文件 + 开奖历史查询接口（同上）
+  - 约束：仓库内不出现官方域名、接口路径、字段名等可追溯信息
 
 ## 5. 功能需求
 
