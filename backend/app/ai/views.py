@@ -1,17 +1,24 @@
-"""AI 分析接口（鉴权后访问）。"""
+"""AI 分析与对话接口（鉴权后访问）。"""
 
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Header, Query, Request
 
-from app.ai.service import AiAnalysisUnavailable, ai_configured, analyze
+from app.ai.service import (
+    AiAnalysisUnavailable,
+    AiChatUnavailable,
+    ai_configured,
+    analyze,
+    chat,
+)
 from app.common.enums import GameId
 from app.common.exceptions import GameNotFound
-from app.common.rate_limit import limit_analysis
+from app.common.rate_limit import limit_analysis, limit_chat
 from app.common.response import error_response, ok_response
 from app.db.database import Database
 from app.dependencies import get_current_user, get_database
 from app.games.config import get_game
+from app.schemas import ChatRequest
 from app.stats.service import compute_statistics
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
@@ -70,5 +77,45 @@ def ai_analysis(
         result = analyze(stats, session_id=session_id)
     except AiAnalysisUnavailable as error:
         return error_response(50301, error.message, request)
+
+    return ok_response(result, request)
+
+
+@router.post(
+    "/chat",
+    summary="AI 对话",
+    description="多轮对话，支持选择模型与用户自带 Key；Key 不落库、不写日志",
+    dependencies=[Depends(limit_chat)],
+)
+def ai_chat(
+    payload: ChatRequest,
+    request: Request,
+    session_id: Optional[str] = Header(default=None, alias="x-opencode-session"),
+    _user: Any = Depends(get_current_user),
+) -> Any:
+    """生成 AI 对话回复。
+
+    Args:
+        payload: 对话请求体。
+        request: 请求对象。
+        session_id: 会话标识（header）。
+        _user: 登录用户。
+
+    Returns:
+        统一响应结构。
+    """
+    messages = [
+        {"role": item.role, "content": item.content}
+        for item in payload.messages
+    ]
+    try:
+        result = chat(
+            messages,
+            model=payload.model,
+            api_key=payload.apiKey,
+            session_id=session_id,
+        )
+    except AiChatUnavailable as error:
+        return error_response(50302, error.message, request)
 
     return ok_response(result, request)

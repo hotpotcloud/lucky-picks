@@ -83,3 +83,21 @@ export interface AiAnalysisDto {
   /** 风险提示。 */
   disclaimer: string;
 }
+
+/** AI 对话消息。 */
+export interface ChatMessageDto {
+  /** 消息角色。 */
+  role: 'system' | 'user' | 'assistant';
+  /** 消息正文。 */
+  content: string;
+}
+
+/** AI 对话结果。 */
+export interface ChatReplyDto {
+  /** 实际使用的模型。 */
+  model: string;
+  /** 回复正文。 */
+  content: string;
+  /** 风险提示。 */
+  disclaimer: string;
+}

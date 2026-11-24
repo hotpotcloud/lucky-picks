@@ -38,13 +38,13 @@ const HistoryList = ({ records, onCopy, onDelete }: HistoryListProps) => (
       };
 
       return (
-        <Card className="bg-slate-950/30" key={record.id}>
+        <Card className="bg-[var(--input)]" key={record.id}>
           <CardContent className="space-y-3 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="info">{record.gameName}</Badge>
                 <Badge tone="neutral">{MODE_LABELS[record.mode]}</Badge>
-                <time className="text-xs text-slate-500">
+                <time className="text-xs text-muted-foreground">
                   {new Date(record.createdAt).toLocaleString()}
                 </time>
               </div>
@@ -69,7 +69,7 @@ const HistoryList = ({ records, onCopy, onDelete }: HistoryListProps) => (
               <div className="flex flex-wrap gap-2">
                 {game.areas.map((area) => (
                   <span className="ticket-area" key={area.key}>
-                    <span className="text-xs text-slate-500">{area.label}</span>
+                    <span className="text-xs text-muted-foreground">{area.label}</span>
                     {(preview[area.key] ?? []).map((value) => (
                       <NumberBall
                         key={`${area.key}-${value}`}
@@ -82,7 +82,7 @@ const HistoryList = ({ records, onCopy, onDelete }: HistoryListProps) => (
                 ))}
               </div>
             ) : null}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               共 {record.combinationCount} 注 · 参考金额{' '}
               {formatAmount(record.amount ?? record.combinationCount * TICKET_PRICE)}
               {record.tickets.length > 1 ? '（首注预览）' : ''}

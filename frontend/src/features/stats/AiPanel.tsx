@@ -15,10 +15,10 @@ const AiPanel = ({ game, window }: AiPanelProps) => {
   const logic = useAiPanelLogic(game, window);
 
   return (
-    <Card className="border-slate-700 bg-[#11161d] shadow-none">
-      <CardHeader className="border-b border-slate-800">
+    <Card className="border-[var(--border)] bg-[var(--card)] shadow-none">
+      <CardHeader className="border-b border-[var(--border)]">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-slate-50">
+          <CardTitle className="flex items-center gap-2 text-[var(--foreground)]">
             <Sparkles className="text-cyan-300" size={18} />
             AI 分析
           </CardTitle>
@@ -42,10 +42,10 @@ const AiPanel = ({ game, window }: AiPanelProps) => {
         {logic.error && <Notice tone="error">{logic.error}</Notice>}
         {logic.result ? (
           <article className="rounded-md border border-cyan-400/20 bg-cyan-400/5 p-4">
-            <p className="m-0 whitespace-pre-wrap leading-7 text-slate-200">
+            <p className="m-0 whitespace-pre-wrap leading-7 text-[var(--foreground)]">
               {logic.result.content}
             </p>
-            <p className="mb-0 mt-4 border-t border-cyan-400/15 pt-3 text-xs leading-5 text-slate-500">
+            <p className="mb-0 mt-4 border-t border-cyan-400/15 pt-3 text-xs leading-5 text-muted-foreground">
               {logic.result.disclaimer}
             </p>
           </article>

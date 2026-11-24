@@ -41,7 +41,7 @@ export const OmissionTable = ({ stats }: OmissionTableProps) => {
               {rows.map((metric) => {
                 const state = getMetricState(metric.zScore);
                 return (
-                  <tr key={metric.number} className="text-slate-200 hover:bg-slate-900/70">
+                  <tr key={metric.number} className="text-[var(--foreground)] hover:bg-[var(--card-raised)]">
                     <td className="px-4 py-3 font-mono text-cyan-200">
                       {formatNumber(metric.number)}
                     </td>
@@ -54,7 +54,7 @@ export const OmissionTable = ({ stats }: OmissionTableProps) => {
                           'inline-flex rounded px-2 py-1 text-xs',
                           state === '偏热' && 'bg-rose-400/10 text-rose-300',
                           state === '偏冷' && 'bg-blue-400/10 text-blue-300',
-                          state === '常态' && 'bg-slate-700/60 text-slate-300',
+                          state === '常态' && 'bg-[var(--card-raised)] text-muted-foreground',
                         )}
                       >
                         {state}
@@ -66,8 +66,8 @@ export const OmissionTable = ({ stats }: OmissionTableProps) => {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-800 px-4 py-3">
-          <span className="text-xs text-slate-500">
+        <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-3">
+          <span className="text-xs text-muted-foreground">
             第 {safePage}/{pageCount} 页 · 共 {stats.metrics.length} 个号码
           </span>
           <div className="flex gap-2">

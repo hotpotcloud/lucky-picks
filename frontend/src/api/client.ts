@@ -3,7 +3,7 @@
  * VITE_API_BASE_URL 未配置时默认请求当前站点同源接口。
  */
 
-import type { AiAnalysisDto, Envelope, LoginResponse } from './types';
+import type { AiAnalysisDto, ChatMessageDto, ChatReplyDto, Envelope, LoginResponse } from './types';
 import { derivePasswordDigest } from './passwordDigest';
 
 /** 后端服务地址（未配置则使用同源相对路径）。 */
@@ -152,13 +152,18 @@ export const apiGet = async <T>(path: string): Promise<T> => {
  * @param payload 请求体
  * @returns 接口的 data 字段
  */
-export const apiPost = async <T>(path: string, payload: unknown): Promise<T> => {
+export const apiPost = async <T>(
+  path: string,
+  payload: unknown,
+  signal?: AbortSignal,
+): Promise<T> => {
   const token = getToken();
   if (!token) {
     throw new UnauthorizedError();
   }
   const response = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -194,3 +199,26 @@ export const fetchAiConfigured = async (): Promise<{ available: boolean }> =>
  */
 export const fetchAiAnalysis = async (game: string, window: number): Promise<AiAnalysisDto> =>
   apiGet<AiAnalysisDto>(`/api/v1/ai/analysis/${game}?window=${window}`);
+
+/**
+ * 生成 AI 对话回复。
+ * @param messages 会话消息
+ * @param model 模型名称
+ * @param apiKey 用户自带 Key（为空时使用服务端 Key）
+ * @param signal 取消信号
+ */
+export const fetchAiChat = (
+  messages: ChatMessageDto[],
+  model: string,
+  apiKey: string,
+  signal?: AbortSignal,
+): Promise<ChatReplyDto> =>
+  apiPost<ChatReplyDto>(
+    '/api/v1/ai/chat',
+    {
+      messages,
+      model: model.trim() || undefined,
+      apiKey: apiKey.trim() || undefined,
+    },
+    signal,
+  );

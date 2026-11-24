@@ -1,4 +1,4 @@
-import { BarChart3, Clock3, History, LogOut, Sparkles } from 'lucide-react';
+import { BarChart3, Clock3, History, LogOut, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../features/auth/AuthContext';
 import { InvitePanel } from '../../features/auth/InvitePanel';
@@ -9,6 +9,7 @@ const NAVIGATION: NavigationItem[] = [
   { label: '智能推荐', value: 'recommend', icon: <Clock3 aria-hidden="true" /> },
   { label: '历史数据', value: 'history', icon: <History aria-hidden="true" /> },
   { label: '数据分析', value: 'analysis', icon: <BarChart3 aria-hidden="true" /> },
+  { label: 'AI 对话', value: 'chat', icon: <MessageSquare aria-hidden="true" /> },
 ];
 
 interface WorkbenchTopbarProps {

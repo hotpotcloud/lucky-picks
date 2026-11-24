@@ -34,6 +34,7 @@ class RequestLimiter:
 
 registration_limiter = RequestLimiter(per_source=20, total=100)
 analysis_limiter = RequestLimiter(per_source=5, total=20)
+chat_limiter = RequestLimiter(per_source=30, total=90)
 
 
 def request_source(request: Request) -> str:
@@ -52,3 +53,8 @@ def limit_registration(request: Request) -> None:
 def limit_analysis(request: Request) -> None:
     """高成本分析执行来源级与全局限流。"""
     analysis_limiter.check(request_source(request))
+
+
+def limit_chat(request: Request) -> None:
+    """AI 对话执行来源级与全局限流，避免上游额度被单用户耗尽。"""
+    chat_limiter.check(request_source(request))

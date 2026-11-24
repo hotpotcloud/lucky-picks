@@ -46,7 +46,7 @@ const QuickPickPanel = ({
     <Button className="w-full" type="button" onClick={onQuickFill}>
       机选填充
     </Button>
-    <label className="block space-y-2 text-sm font-medium text-slate-200">
+    <label className="block space-y-2 text-sm font-medium text-[var(--foreground)]">
       <span>机选注数</span>
       <Input
         type="number"

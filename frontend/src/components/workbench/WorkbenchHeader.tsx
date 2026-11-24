@@ -11,6 +11,7 @@ const PAGE_TITLE: Record<WorkbenchTab, string> = {
   recommend: '智能推荐',
   history: '历史数据',
   analysis: '数据分析',
+  chat: 'AI 对话',
 };
 
 interface WorkbenchHeaderProps {

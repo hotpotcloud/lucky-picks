@@ -1,6 +1,7 @@
 /** 已登录后的应用工作台，集中组合业务 Hook 与页面组件。 */
 
 import { useState } from 'react';
+import { ChatPanel } from '../../features/chat/ChatPanel';
 import { computeStats, useDraws } from '../../features/data/useDraws';
 import { usePicker } from '../../features/picker/hooks/usePicker';
 import { AnalysisView } from './AnalysisView';
@@ -24,7 +25,9 @@ export const WorkbenchApp = () => {
     <div className="app-shell">
       <WorkbenchTopbar activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="w-full pt-2">
-        <WorkbenchHeader activeTab={activeTab} picker={picker} draws={draws} />
+        {activeTab !== 'chat' && (
+          <WorkbenchHeader activeTab={activeTab} picker={picker} draws={draws} />
+        )}
         {activeTab === 'picker' && <PickerView picker={picker} draws={draws} />}
         {activeTab === 'recommend' && <RecommendView picker={picker} draws={draws.draws} />}
         {activeTab === 'history' && <HistoryView picker={picker} draws={draws} stats={stats} />}
@@ -36,6 +39,7 @@ export const WorkbenchApp = () => {
             onWindowChange={setWindowSize}
           />
         )}
+        {activeTab === 'chat' && <ChatPanel />}
       </main>
     </div>
   );

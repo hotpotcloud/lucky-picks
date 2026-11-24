@@ -48,7 +48,7 @@ export const FrequencyChart = ({ stats, game }: FrequencyChartProps) => {
         </Button>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <div className="relative overflow-x-auto rounded-xl border border-[var(--border)] bg-[#0b1017] px-3 pt-8">
+        <div className="relative overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--input)] px-3 pt-8">
           {game && (
             <div
               className="pointer-events-none absolute left-3 right-3 border-t border-dashed border-amber-300/70"
@@ -93,7 +93,7 @@ export const FrequencyChart = ({ stats, game }: FrequencyChartProps) => {
               {activeMetric.omission} 期 · {getMetricState(activeMetric.zScore)}
             </span>
           ) : (
-            <span className="text-slate-500">悬浮或聚焦柱体查看实际统计详情</span>
+            <span className="text-muted-foreground">悬浮或聚焦柱体查看实际统计详情</span>
           )}
         </div>
       </CardContent>

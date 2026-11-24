@@ -1,15 +1,15 @@
-"""AI 分析服务：调用 OpenCode Go 订阅的 deepseek-v4.1-flash 模型。
+"""AI 服务：调用 OpenCode Go 订阅的 deepseek-v4.1-flash 模型。
 
 约束：
-- 只允许使用 deepseek-v4.1-flash（唯一模型，禁止其它模型）；
-- API Key 从环境变量 PWKEY 读取，不写入代码与响应；
+- 统计分析固定使用 deepseek-v4.1-flash，禁止请求方覆盖；
+- 对话允许请求方选择模型与自带 Key，但 Key 不写入代码、日志与响应；
 - 使用 Go 订阅端点，必须携带 x-opencode-session 会话标识；
 - 分析的是号码分布统计摘要，输出可解释的中文分析；明确不承诺预测中奖。
 """
 
 import os
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 from loguru import logger
@@ -23,6 +23,9 @@ GO_CHAT_URL = "https://opencode.ai/inference/go/v1/chat/completions"
 # 请求超时（秒）。
 REQUEST_TIMEOUT = 60.0
 
+# 对话请求超时（秒）：对话上下文更长，适当放宽。
+CHAT_TIMEOUT = 120.0
+
 # 系统提示词：约束模型只做统计解读，不做中奖预测。
 SYSTEM_PROMPT = (
     "你是一个数字选号工具的统计分析师。你会收到最近若干期开奖号码的频率、遗漏与分布统计摘要。\n"
@@ -34,9 +37,26 @@ SYSTEM_PROMPT = (
     "4. 输出纯文本，不要 Markdown 标题。\n"
 )
 
+# 对话系统提示词：允许通用问答，但禁止收益承诺。
+CHAT_SYSTEM_PROMPT = (
+    "你是数字选号工作台内的 AI 助手。可以回答用户关于数据统计、玩法规则与软件使用的问题。\n"
+    "要求：\n"
+    "1. 只使用中文回答，表达简洁、结构清晰，可使用 Markdown。\n"
+    "2. 不承诺中奖、不承诺收益，不使用‘必中/稳赚/提高中奖率’等表述。\n"
+    "3. 当用户询问号码建议时，说明开奖为独立随机事件，历史统计不改变下一期概率。\n"
+)
+
 
 class AiAnalysisUnavailable(Exception):
     """AI 分析不可用。"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+
+class AiChatUnavailable(Exception):
+    """AI 对话不可用。"""
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
@@ -50,6 +70,100 @@ def ai_configured() -> bool:
         是否配置了 PWKEY。
     """
     return bool(os.getenv("PWKEY", "").strip())
+
+
+def _extract_message_text(body: Dict[str, Any]) -> str:
+    """从上游响应中提取正文，兼容 reasoning_content 回退。
+
+    Args:
+        body: 上游返回的 JSON 对象。
+
+    Returns:
+        模型输出的正文。
+
+    Raises:
+        AiChatUnavailable: 响应结构不符合预期。
+    """
+    try:
+        message = body["choices"][0]["message"]
+        content = message.get("content") or ""
+        reasoning = message.get("reasoning_content") or ""
+        return (content or reasoning).strip()
+    except (KeyError, IndexError, TypeError) as error:
+        logger.exception("AI 对话响应格式异常")
+        raise AiChatUnavailable("AI 对话结果格式异常") from error
+
+
+def chat(
+    messages: List[Dict[str, str]],
+    model: Optional[str] = None,
+    api_key: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """生成 AI 对话回复。
+
+    Args:
+        messages: 会话消息（role/content）。
+        model: 模型名称；为空时使用默认模型。
+        api_key: 用户自带 Key；为空时使用服务端 PWKEY。
+        session_id: 会话标识，用于上游路由与缓存。
+
+    Returns:
+        含模型名与正文的字典。
+
+    Raises:
+        AiChatUnavailable: Key 缺失、上游请求失败或返回内容为空。
+    """
+    key = (api_key or os.getenv("PWKEY", "")).strip()
+    if not key:
+        raise AiChatUnavailable("未配置 AI Key，请填写自己的 Key 或联系管理员")
+
+    selected_model = (model or ALLOWED_MODEL).strip() or ALLOWED_MODEL
+    # 系统提示词由服务端统一注入，避免前端遗漏风险约束。
+    payload_messages = [{"role": "system", "content": CHAT_SYSTEM_PROMPT}, *messages]
+    payload = {
+        "model": selected_model,
+        "messages": payload_messages,
+        "max_tokens": 1600,
+        "temperature": 0.6,
+    }
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "x-opencode-session": session_id or f"lucky-picks-{uuid.uuid4().hex[:12]}",
+        "User-Agent": "lucky-picks/2.0",
+    }
+
+    try:
+        with httpx.Client(timeout=CHAT_TIMEOUT) as client:
+            response = client.post(GO_CHAT_URL, headers=headers, json=payload)
+    except httpx.HTTPError as error:
+        # 只记录模型与会话，禁止记录 Key 与消息正文。
+        logger.exception("AI 对话请求失败：model={}", selected_model)
+        raise AiChatUnavailable("AI 服务暂时不可用，请稍后重试") from error
+
+    if response.status_code != 200:
+        logger.error(
+            "AI 对话返回错误：model={} status={}",
+            selected_model,
+            response.status_code,
+        )
+        raise AiChatUnavailable(f"AI 服务返回错误（{response.status_code}）")
+
+    try:
+        text = _extract_message_text(response.json())
+    except ValueError as error:
+        logger.exception("AI 对话响应不是合法 JSON：model={}", selected_model)
+        raise AiChatUnavailable("AI 对话结果格式异常") from error
+
+    if not text:
+        raise AiChatUnavailable("AI 对话未返回内容")
+
+    return {
+        "model": selected_model,
+        "content": text,
+        "disclaimer": "AI 输出仅供参考；开奖为独立随机事件，历史统计不改变下一期概率。",
+    }
 
 
 def _build_summary(stats: Dict[str, Any]) -> str:

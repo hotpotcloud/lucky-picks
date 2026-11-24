@@ -30,7 +30,7 @@ const MultiplePanel = ({ game, selections, onToggle, info, onQuickFill }: Multip
       const selected = selections[area.key] ?? [];
       return (
         <section className="space-y-2" key={area.key}>
-          <h3 className="text-sm font-semibold text-slate-100">
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">
             {area.label}（已选 {selected.length}，至少 {area.count}）
           </h3>
           <NumberGrid

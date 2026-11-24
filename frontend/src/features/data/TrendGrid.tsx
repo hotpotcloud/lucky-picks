@@ -39,7 +39,7 @@ export const TrendGrid = ({ draws, game }: TrendGridProps) => {
 
   if (!draws.length) {
     return (
-      <div className="rounded-md border border-slate-800 p-6 text-sm text-slate-500">
+      <div className="rounded-md border border-[var(--border)] p-6 text-sm text-muted-foreground">
         暂无走势数据
       </div>
     );
@@ -140,10 +140,10 @@ interface TrendMatrixProps {
 }
 
 const TrendMatrix = (props: TrendMatrixProps) => (
-  <div className="max-h-[520px] overflow-auto rounded-xl border border-[var(--border)] bg-[#0b1017] [scrollbar-color:#334155_transparent] [scrollbar-width:thin]">
+  <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--input)]">
     <div className="min-w-max">
-      <div className="sticky top-0 z-20 flex bg-[#151d27]">
-        <div className="sticky left-0 z-30 flex w-28 shrink-0 items-center border-r border-[var(--border)] bg-[#151d27] px-3 text-xs text-muted-foreground">期号</div>
+      <div className="sticky top-0 z-20 flex bg-[var(--card-raised)]">
+        <div className="sticky left-0 z-30 flex w-28 shrink-0 items-center border-r border-[var(--border)] bg-[var(--card-raised)] px-3 text-xs text-muted-foreground">期号</div>
         {props.numbers.map((number) => (
           <button key={number} type="button" className={cn(props.cellSize, 'shrink-0 border-r border-[var(--border)] font-mono text-[11px] text-muted-foreground hover:bg-[var(--accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]', props.lockedNumber === number && 'bg-primary/10 text-primary')} onClick={() => props.onLock(props.lockedNumber === number ? null : number)} aria-pressed={props.lockedNumber === number}>
             {props.lockedNumber === number && <Lock className="mx-auto h-2.5 w-2.5" />}{formatNumber(number)}
@@ -151,13 +151,13 @@ const TrendMatrix = (props: TrendMatrixProps) => (
         ))}
       </div>
       {props.draws.map((draw, rowIndex) => (
-        <div key={draw.issue} className={cn('group flex hover:bg-primary/[0.035]', (rowIndex + 1) % 10 === 0 && 'border-b border-[#3a4655]')}>
+        <div key={draw.issue} className={cn('group flex hover:bg-primary/[0.035]', (rowIndex + 1) % 10 === 0 && 'border-b border-[var(--border)]')}>
           <div className="sticky left-0 z-10 flex w-28 shrink-0 items-center border-r border-[var(--border)] bg-[var(--card)] px-3 font-mono text-xs text-muted-foreground group-hover:bg-[var(--accent)]">{draw.issue}</div>
           {props.numbers.map((number, columnIndex) => {
             const isHit = getDrawNumbers(draw, props.area).includes(number);
             return (
-              <button key={number} type="button" className={cn(props.cellSize, 'shrink-0 border-r border-[var(--border)]/70 text-xs text-transparent hover:bg-primary/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]', (columnIndex + 1) % 5 === 0 && 'border-r-[#3a4655]', props.lockedNumber === number && 'bg-primary/[0.06]')} onMouseEnter={() => props.onDetail({ issue: draw.issue, date: draw.date, number, isHit })} onMouseLeave={() => props.onDetail(null)} onFocus={() => props.onDetail({ issue: draw.issue, date: draw.date, number, isHit })} onBlur={() => props.onDetail(null)}>
-                {isHit && <span className={cn('inline-flex h-6 w-6 items-center justify-center rounded-full font-mono font-semibold', props.color === 'red' ? 'bg-rose-400' : 'bg-blue-400')}>{formatNumber(number)}</span>}
+              <button key={number} type="button" className={cn(props.cellSize, 'shrink-0 border-r border-[var(--border)]/70 text-xs text-transparent hover:bg-primary/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]', (columnIndex + 1) % 5 === 0 && 'border-r-[var(--border)]', props.lockedNumber === number && 'bg-primary/[0.06]')} onMouseEnter={() => props.onDetail({ issue: draw.issue, date: draw.date, number, isHit })} onMouseLeave={() => props.onDetail(null)} onFocus={() => props.onDetail({ issue: draw.issue, date: draw.date, number, isHit })} onBlur={() => props.onDetail(null)}>
+                {isHit && <span className={cn('inline-flex h-6 w-6 items-center justify-center rounded-full font-mono font-semibold text-slate-950', props.color === 'red' ? 'bg-rose-400' : 'bg-blue-400')}>{formatNumber(number)}</span>}
               </button>
             );
           })}

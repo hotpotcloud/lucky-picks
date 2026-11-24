@@ -58,13 +58,13 @@ const BankerPanel = ({
       </Button>
       <section className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-semibold text-slate-100">
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">
             {primary.label}（胆码 {banker.length}，拖码 {drag.length}）
           </h3>
           <Badge tone="warning">胆</Badge>
           <Badge tone="info">拖</Badge>
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           点击循环：未选 → 拖码 → 胆码 → 未选；胆码少于 {primary.count} 个
         </p>
         <NumberGrid area={primary} selected={[]} statusOf={statusOf} onToggle={onCycle} />
@@ -74,7 +74,7 @@ const BankerPanel = ({
         const selected = selections[area.key] ?? [];
         return (
           <section className="space-y-2" key={area.key}>
-            <h3 className="text-sm font-semibold text-slate-100">
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">
               {area.label}（已选 {selected.length}，至少 {area.count}）
             </h3>
             <NumberGrid

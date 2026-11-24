@@ -32,7 +32,7 @@ interface BadgeProps {
 
 const badgeToneClasses: Record<NonNullable<BadgeProps['tone']>, string> = {
   ...toneClasses,
-  neutral: 'border-slate-600 bg-slate-800 text-slate-300',
+  neutral: 'border-[var(--border)] bg-[var(--card-raised)] text-muted-foreground',
 };
 
 /** 紧凑状态标记。 */
@@ -54,8 +54,8 @@ interface EmptyStateProps {
 
 /** 面板空状态。 */
 export const EmptyState = ({ title, description }: EmptyStateProps) => (
-  <div className="rounded-md border border-dashed border-slate-700 bg-slate-950/35 px-5 py-8 text-center">
-    <p className="m-0 text-sm font-medium text-slate-200">{title}</p>
-    {description && <p className="mb-0 mt-2 text-sm text-slate-500">{description}</p>}
+  <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--input)] px-5 py-8 text-center">
+    <p className="m-0 text-sm font-medium text-[var(--foreground)]">{title}</p>
+    {description && <p className="mb-0 mt-2 text-sm text-muted-foreground">{description}</p>}
   </div>
 );

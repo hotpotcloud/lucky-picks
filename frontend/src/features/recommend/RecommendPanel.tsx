@@ -27,16 +27,16 @@ const RecommendPanel = ({ game }: RecommendPanelProps) => {
   const logic = useRecommendPanelLogic(game);
 
   return (
-    <Card className="border-slate-700 bg-[#11161d] shadow-none">
-      <CardHeader className="gap-3 border-b border-slate-800">
+    <Card className="border-[var(--border)] bg-[var(--card)] shadow-none">
+      <CardHeader className="gap-3 border-b border-[var(--border)]">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-slate-50">
+          <CardTitle className="flex items-center gap-2 text-[var(--foreground)]">
             <Cpu className="text-emerald-300" size={18} />
             智能推荐
           </CardTitle>
           <Badge tone="info">真实数据</Badge>
         </div>
-        <p className="m-0 text-sm text-slate-400">配置策略与随机种子，结果由推荐服务生成。</p>
+        <p className="m-0 text-sm text-muted-foreground">配置策略与随机种子，结果由推荐服务生成。</p>
       </CardHeader>
       <CardContent className="space-y-5 pt-5">
         <Segmented
@@ -46,7 +46,7 @@ const RecommendPanel = ({ game }: RecommendPanelProps) => {
           onChange={(value) => logic.setStrategy(String(value))}
         />
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-          <label className="space-y-2 text-sm text-slate-300">
+          <label className="space-y-2 text-sm text-muted-foreground">
             <span>推荐注数</span>
             <Input
               type="number"
@@ -56,7 +56,7 @@ const RecommendPanel = ({ game }: RecommendPanelProps) => {
               onChange={(event) => logic.handleCountChange(Number(event.target.value))}
             />
           </label>
-          <label className="space-y-2 text-sm text-slate-300">
+          <label className="space-y-2 text-sm text-muted-foreground">
             <span>随机种子</span>
             <Input
               type="number"
@@ -82,10 +82,10 @@ const RecommendPanel = ({ game }: RecommendPanelProps) => {
           <div className="space-y-2">
             {logic.bets.map((bet, index) => (
               <div
-                className="flex flex-wrap items-center gap-3 border-b border-slate-800 py-3 last:border-0"
+                className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] py-3 last:border-0"
                 key={`${logic.strategy}-${index}`}
               >
-                <span className="w-7 font-mono text-xs text-slate-500">
+                <span className="w-7 font-mono text-xs text-muted-foreground">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <div className="flex flex-1 flex-wrap gap-1">

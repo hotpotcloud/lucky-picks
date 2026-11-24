@@ -1,6 +1,7 @@
 """接口请求/响应模型（Pydantic v2）。"""
 
-from typing import List, Optional
+import re
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -169,3 +170,42 @@ class RecommendationIn(BaseModel):
     additional: bool = False
     seed: Optional[int] = None
     constraints: Optional[ConstraintsIn] = None
+
+
+class ChatMessageIn(BaseModel):
+    """对话消息。
+
+    Attributes:
+        role: 消息角色，仅允许 system/user/assistant。
+        content: 消息正文，限制长度以避免超长请求拖垮上游模型。
+    """
+
+    model_config = {"extra": "forbid"}
+    role: Literal["system", "user", "assistant"]
+    content: str = Field(min_length=1, max_length=8000)
+
+
+class ChatRequest(BaseModel):
+    """AI 对话请求。
+
+    Attributes:
+        messages: 会话消息列表，按时间顺序排列。
+        model: 模型名称；为空时使用服务端默认模型。
+        apiKey: 用户自带的 Key；为空时使用服务端 PWKEY。
+    """
+
+    model_config = {"extra": "forbid"}
+    messages: List[ChatMessageIn] = Field(min_length=1, max_length=40)
+    model: Optional[str] = Field(default=None, max_length=64)
+    apiKey: Optional[str] = Field(default=None, min_length=1, max_length=512)
+
+    @field_validator("model")
+    @classmethod
+    def validate_model(cls, value: Optional[str]) -> Optional[str]:
+        """限制模型名格式，阻止通过特殊字符构造上游异常请求。"""
+        if value is None:
+            return None
+        model = value.strip()
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,63}", model):
+            raise ValueError("模型名称只能包含字母、数字及 . _ : / -")
+        return model

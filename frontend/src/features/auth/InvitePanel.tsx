@@ -11,15 +11,15 @@ export const InvitePanel = () => {
 
   return (
     <details className="relative max-w-full">
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-cyan-400/50 hover:text-cyan-100">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border border-[var(--border)] px-3 py-2 text-sm text-muted-foreground hover:border-[var(--primary)]/50 hover:text-[var(--primary-hover)]">
         <KeyRound size={16} />
         邀请管理
         <ChevronDown size={14} className="ml-auto" />
       </summary>
-      <div className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] space-y-3 rounded-md border border-slate-700 bg-[#11161d] p-4 shadow-2xl">
+      <div className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] space-y-3 rounded-md border border-[var(--border)] bg-[var(--card)] p-4 shadow-2xl">
         <div>
-          <p className="m-0 text-sm font-medium text-slate-100">生成邀请码</p>
-          <p className="mb-0 mt-1 text-xs leading-5 text-slate-500">
+          <p className="m-0 text-sm font-medium text-[var(--foreground)]">生成邀请码</p>
+          <p className="mb-0 mt-1 text-xs leading-5 text-muted-foreground">
             邀请码仅在当前面板展示，请及时复制。
           </p>
         </div>

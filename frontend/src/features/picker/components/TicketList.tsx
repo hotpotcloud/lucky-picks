@@ -30,10 +30,10 @@ const TicketList = ({ game, tickets, combinations, analyze = true }: TicketListP
         const analysis = analyzeTicket(game, ticket);
         return (
           <div
-            className="ticket-row rounded-md border border-slate-800 bg-slate-950/35 px-3 py-2"
+            className="ticket-row rounded-md border border-[var(--border)] bg-[var(--input)] px-3 py-2"
             key={index}
           >
-            <span className="ticket-index font-mono text-xs text-slate-500">
+            <span className="ticket-index font-mono text-xs text-muted-foreground">
               {String(index + 1).padStart(2, '0')}
             </span>
             <div className="ticket-numbers">
@@ -41,7 +41,7 @@ const TicketList = ({ game, tickets, combinations, analyze = true }: TicketListP
                 const values = ticket[area.key] ?? [];
                 return (
                   <span className="ticket-area" key={area.key}>
-                    <span className="text-xs text-slate-500">{area.label}</span>
+                    <span className="text-xs text-muted-foreground">{area.label}</span>
                     {values.map((value) => (
                       <NumberBall key={`${area.key}-${value}`} value={value} color={area.color} />
                     ))}

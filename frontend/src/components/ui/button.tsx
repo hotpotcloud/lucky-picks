@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 
 /** 本地 shadcn 按钮：所有页面共用语义主题与焦点反馈。 */
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-transparent text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:opacity-45',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-transparent text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:border-[var(--border)] disabled:bg-[var(--card-raised)] disabled:text-[var(--text-disabled)] disabled:opacity-100',
   {
     variants: {
       variant: {

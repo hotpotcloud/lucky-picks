@@ -31,9 +31,9 @@ const QuickConstraintsPanel = ({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-cyan-400/20 bg-slate-950/30 p-3">
+    <div className="space-y-3 rounded-lg border border-cyan-400/20 bg-[var(--input)] p-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-slate-100">手动条件（可选）</span>
+        <span className="text-sm font-semibold text-[var(--foreground)]">手动条件（可选）</span>
         <Button
           type="button"
           variant="ghost"
@@ -44,7 +44,7 @@ const QuickConstraintsPanel = ({
         </Button>
       </div>
       <div className="grid gap-2 sm:grid-cols-[7rem_1fr_auto] sm:items-center">
-        <label className="text-sm text-slate-300" htmlFor="quick-odd-count">
+        <label className="text-sm text-muted-foreground" htmlFor="quick-odd-count">
           奇:偶
         </label>
         <Input
@@ -59,12 +59,12 @@ const QuickConstraintsPanel = ({
             parseInput(event.target.value, (oddCount) => onChange({ ...value, oddCount }))
           }
         />
-        <span className="text-sm text-slate-400">
+        <span className="text-sm text-muted-foreground">
           {value.oddCount === null ? '偶数自动计算' : `:${primaryArea.count - value.oddCount}`}
         </span>
       </div>
       <div className="grid gap-2 sm:grid-cols-[7rem_1fr_auto] sm:items-center">
-        <label className="text-sm text-slate-300" htmlFor="quick-big-count">
+        <label className="text-sm text-muted-foreground" htmlFor="quick-big-count">
           大:小
         </label>
         <Input
@@ -79,12 +79,12 @@ const QuickConstraintsPanel = ({
             parseInput(event.target.value, (bigCount) => onChange({ ...value, bigCount }))
           }
         />
-        <span className="text-sm text-slate-400">
+        <span className="text-sm text-muted-foreground">
           {value.bigCount === null ? '小数自动计算' : `:${primaryArea.count - value.bigCount}`}
         </span>
       </div>
       <div className="grid gap-2 sm:grid-cols-[7rem_1fr] sm:items-center">
-        <label className="text-sm text-slate-300" htmlFor="quick-sum">
+        <label className="text-sm text-muted-foreground" htmlFor="quick-sum">
           和值
         </label>
         <Input
@@ -99,13 +99,13 @@ const QuickConstraintsPanel = ({
         />
       </div>
       <fieldset className="grid gap-2 sm:grid-cols-[7rem_1fr] sm:items-start">
-        <legend className="text-sm text-slate-300">一区:二区:三区</legend>
+        <legend className="text-sm text-muted-foreground">一区:二区:三区</legend>
         <div className="grid grid-cols-3 gap-2">
           {value.zoneCounts.map((zoneCount, index) => {
             const inputId = `quick-zone-${index + 1}`;
             return (
               <div className="space-y-1" key={inputId}>
-                <label className="text-xs text-slate-400" htmlFor={inputId}>
+                <label className="text-xs text-muted-foreground" htmlFor={inputId}>
                   {`${index + 1}区`}
                 </label>
                 <Input
