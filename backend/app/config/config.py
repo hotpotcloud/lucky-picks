@@ -55,7 +55,8 @@ class Settings:
             origin.strip()
             for origin in os.getenv(
                 "CORS_ORIGINS",
-                "http://localhost:5173,https://hotpotcloud.github.io",
+                "http://localhost:5173,https://hotpotcloud.github.io,"
+                "http://119.29.189.103:8080,http://119.29.189.103",
             ).split(",")
             if origin.strip()
         ]
