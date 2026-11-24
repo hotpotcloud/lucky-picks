@@ -1,4 +1,4 @@
-import { InputNumber, Radio, Space, Typography } from 'antd';
+import { Button, InputNumber, Radio, Space, Typography } from 'antd';
 import { QUICK_PICK_MAX, QUICK_PICK_MIN } from '../constants';
 import { STRATEGY_LABELS } from '../labels';
 import type { QuickStrategy } from '../types';
@@ -13,6 +13,8 @@ interface QuickPickPanelProps {
   onCountChange: (value: number) => void;
   /** 策略变化回调。 */
   onStrategyChange: (value: QuickStrategy) => void;
+  /** 机选填充回调。 */
+  onQuickFill: () => void;
 }
 
 /**
@@ -24,8 +26,12 @@ const QuickPickPanel = ({
   strategy,
   onCountChange,
   onStrategyChange,
+  onQuickFill,
 }: QuickPickPanelProps) => (
   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Button block onClick={onQuickFill}>
+      机选填充
+    </Button>
     <div>
       <Typography.Text strong>机选注数</Typography.Text>
       <InputNumber

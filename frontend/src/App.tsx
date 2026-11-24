@@ -22,7 +22,6 @@ const TABS = [
   { label: '推荐', value: 'recommend' },
   { label: '历史', value: 'history' },
   { label: '分析', value: 'analysis' },
-  { label: '走势', value: 'trend' },
 ];
 
 /**
@@ -44,6 +43,7 @@ const MainView = () => {
           selections={picker.selections}
           onToggle={picker.toggleSelection}
           info={picker.multipleInfo}
+          onQuickFill={picker.quickFill}
         />
       );
     }
@@ -57,6 +57,7 @@ const MainView = () => {
           onCycle={picker.cycleBankerNumber}
           onToggle={picker.toggleSelection}
           info={picker.bankerInfo}
+          onQuickFill={picker.quickFill}
         />
       );
     }
@@ -66,6 +67,7 @@ const MainView = () => {
         strategy={picker.strategy}
         onCountChange={picker.setQuickCount}
         onStrategyChange={picker.setStrategy}
+        onQuickFill={picker.quickFill}
       />
     );
   };
@@ -86,12 +88,6 @@ const MainView = () => {
           </Space>
         </Space>
        
-        <Alert
-          type="warning"
-          showIcon
-          message="免责声明"
-          description="开奖结果为独立随机事件，本工具的选号建议仅供娱乐参考，不构成任何投注建议，也不承诺中奖。请理性参与。"
-        />
       </header>
 
       <Segmented block options={TABS} value={tab} onChange={(value) => setTab(String(value))} />
@@ -105,7 +101,7 @@ const MainView = () => {
                 <Segmented
                   block
                   options={[
-                    { label: '机选', value: 'quick' },
+                    { label: '单式', value: 'quick' },
                     { label: '复式', value: 'multiple' },
                     { label: '胆拖', value: 'banker' },
                   ]}
@@ -201,6 +197,10 @@ const MainView = () => {
                       </div>
                     ))}
                 </div>
+                <div className="trend-panel">
+                  <Typography.Text strong>走势图分析</Typography.Text>
+                  <TrendGrid draws={draws.draws} />
+                </div>
               </Space>
             )}
           </Card>
@@ -223,12 +223,6 @@ const MainView = () => {
               <OmissionTable stats={stats} />
             </Card>
           </Space>
-        )}
-
-        {tab === 'trend' && (
-          <Card title="号码走势">
-            <TrendGrid draws={draws.draws} />
-          </Card>
         )}
       </div>
     </div>

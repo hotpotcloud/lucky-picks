@@ -26,11 +26,10 @@ describe('App 交互（TC-013 / TC-014）', () => {
     );
   });
 
-  it('展示免责声明且不含误导性文案（TC-014）', () => {
+  it('首页不展示误导性文案（TC-014）', () => {
     renderApp();
-    expect(screen.getByText('免责声明')).toBeInTheDocument();
-    expect(screen.getByText(/仅供娱乐参考/)).toBeInTheDocument();
     expect(screen.queryByText(/必中|预测中奖/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('选号').length).toBeGreaterThan(0);
   });
 
   it('复式号码不足时禁用生成，补齐后按组合注数生成（TC-005）', async () => {

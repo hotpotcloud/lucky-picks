@@ -27,6 +27,8 @@ export interface BallArea {
   max: number;
   /** 单注基础号码个数。 */
   count: number;
+  /** 允许的胆码数量下限（0 表示不支持胆码）。 */
+  bankerMin: number;
   /** 球的颜色语义，仅用于展示。 */
   color: 'red' | 'blue';
 }

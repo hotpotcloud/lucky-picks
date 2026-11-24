@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,7 +34,7 @@ body {
   position: relative;
 }
 
-/* 四角水印：财神 88px，淡色 */
+/* 四角水印：财神图片 88px，淡色 */
 .watermark-layer {
   position: fixed;
   inset: 0;
@@ -40,17 +42,14 @@ body {
   z-index: 0;
   overflow: hidden;
 }
-
-.watermark-char {
+.watermark-img {
   position: absolute;
-  font-size: 88px;
-  line-height: 1;
-  font-family: 'STKaiti', 'KaiTi', serif;
-  color: rgba(34, 211, 238, 0.06);
+  width: 88px;
+  height: 88px;
+  opacity: 0.06;
+  filter: grayscale(1) brightness(1.8);
   user-select: none;
-  white-space: nowrap;
 }
-
 .wm-top-left { top: 8px; left: 12px; }
 .wm-top-right { top: 8px; right: 12px; }
 .wm-bottom-left { bottom: 8px; left: 12px; }
@@ -101,67 +100,6 @@ body {
   pointer-events: none;
 }
 
-.scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.5), transparent);
-  animation: scanLine 4s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes scanLine {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
-}
-
-.login-card {
-  width: 100%;
-  max-width: 380px;
-  border-color: rgba(34, 211, 238, 0.35) !important;
-  animation: pulseGlow 2.4s ease-in-out infinite;
-}
-
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 16px rgba(34, 211, 238, 0.2), inset 0 1px 0 rgba(255,255,255,0.05); }
-  50% { box-shadow: 0 0 42px rgba(34, 211, 238, 0.5), inset 0 1px 0 rgba(255,255,255,0.08); }
-}
-
-.login-title {
-  display: block;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  background: linear-gradient(90deg, #22d3ee, #60a5fa, #22d3ee);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shine 3s linear infinite;
-}
-
-@keyframes shine {
-  to { background-position: 200% center; }
-}
-
-.login-subtitle {
-  display: block;
-  margin-top: 6px;
-  font-size: 10px;
-  letter-spacing: 4px;
-  color: rgba(34, 211, 238, 0.6);
-}
-
-.tech-corner {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border-color: rgba(34, 211, 238, 0.8);
-}
-.tech-corner-tl { top: 0; left: 0; border-top: 2px solid; border-left: 2px solid; }
-.tech-corner-br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; }
 
 /* 号码网格 */
 .number-grid {
@@ -233,3 +171,76 @@ body {
 }
 .trend-cell { background: rgba(148, 163, 184, 0.1); }
 .trend-hit { background: #cf1322; color: #fff; }
+
+/* 登录：Double-Bezel 双层结构 */
+.login-bezel {
+  padding: 10px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.login-inner {
+  border-radius: 24px;
+  background: rgba(5, 11, 20, 0.72);
+  padding: 8px;
+}
+.eyebrow {
+  display: inline-block;
+  margin: 16px auto 0;
+  padding: 4px 12px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(34, 211, 238, 0.8);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  border-radius: 999px;
+}
+.login-title {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e6f7ff;
+}
+.field-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(165, 243, 252, 0.75);
+}
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(165, 243, 252, 0.7);
+  cursor: pointer;
+}
+.password-toggle:hover { color: #22d3ee; }
+.login-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cta-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.login-cta:hover .cta-icon { transform: translate(2px, -2px); }
+.login-cta:active { transform: scale(0.985); }
+.ant-input, .field-label {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+}

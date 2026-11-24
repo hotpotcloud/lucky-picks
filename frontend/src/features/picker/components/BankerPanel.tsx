@@ -1,4 +1,4 @@
-import { Alert, Space, Tag, Tooltip, Typography } from 'antd';
+import { Alert, Button, Space, Tag, Tooltip, Typography } from 'antd';
 import type { SelectionInfo } from '../generator';
 import type { AreaKey, GameConfig, TicketNumbers } from '../types';
 import NumberGrid from './NumberGrid';
@@ -19,6 +19,8 @@ interface BankerPanelProps {
   onToggle: (areaKey: AreaKey, value: number) => void;
   /** 当前校验与组合信息。 */
   info: SelectionInfo;
+  /** 机选填充回调。 */
+  onQuickFill: () => void;
 }
 
 /**
@@ -33,6 +35,7 @@ const BankerPanel = ({
   onCycle,
   onToggle,
   info,
+  onQuickFill,
 }: BankerPanelProps) => {
   const [primary, ...secondaryAreas] = game.areas;
 
@@ -49,6 +52,9 @@ const BankerPanel = ({
 
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Button block onClick={onQuickFill}>
+        机选填充
+      </Button>
       <div>
         <Typography.Text strong>
           {primary.label}（胆码 {banker.length}，拖码 {drag.length}）

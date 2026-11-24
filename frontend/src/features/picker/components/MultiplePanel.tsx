@@ -1,4 +1,4 @@
-import { Alert, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Space, Tag, Typography } from 'antd';
 import type { SelectionInfo } from '../generator';
 import type { AreaKey, GameConfig, TicketNumbers } from '../types';
 import NumberGrid from './NumberGrid';
@@ -13,13 +13,18 @@ interface MultiplePanelProps {
   onToggle: (areaKey: AreaKey, value: number) => void;
   /** 当前校验与组合信息。 */
   info: SelectionInfo;
+  /** 机选填充回调。 */
+  onQuickFill: () => void;
 }
 
 /**
  * 复式选号面板：逐个区域展示选号网格，并实时反馈组合数与金额。
  */
-const MultiplePanel = ({ game, selections, onToggle, info }: MultiplePanelProps) => (
+const MultiplePanel = ({ game, selections, onToggle, info, onQuickFill }: MultiplePanelProps) => (
   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Button block onClick={onQuickFill}>
+      机选填充
+    </Button>
     {game.areas.map((area) => {
       const selected = selections[area.key] ?? [];
       return (

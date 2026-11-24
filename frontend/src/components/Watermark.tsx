@@ -1,6 +1,5 @@
-/**
- * 四角水印：淡淡的「财神」字样，88px，固定在页面四角，不拦截交互。
- */
+/** 四角水印：淡色财神图片，88px，固定在页面四角，不拦截交互。 */
+
 const CORNERS = [
   'wm-top-left',
   'wm-top-right',
@@ -14,9 +13,12 @@ const CORNERS = [
 const Watermark = () => (
   <div className="watermark-layer" aria-hidden="true">
     {CORNERS.map((corner) => (
-      <span key={corner} className={`watermark-char ${corner}`}>
-        财神
-      </span>
+      <img
+        key={corner}
+        src={`${import.meta.env.BASE_URL}caishen-watermark.svg`}
+        alt=""
+        className={`watermark-img ${corner}`}
+      />
     ))}
   </div>
 );

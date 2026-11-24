@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="财神">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#g)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 官帽 -->
+    <path d="M58 62 Q100 34 142 62 L138 74 Q100 58 62 74 Z"/>
+    <path d="M96 38 L104 38 L106 54 L94 54 Z"/>
+    <!-- 脸 -->
+    <path d="M72 76 Q100 60 128 76 Q136 96 124 118 Q100 138 76 118 Q64 96 72 76 Z"/>
+    <!-- 眉眼 -->
+    <path d="M80 92 Q88 86 96 92"/>
+    <path d="M104 92 Q112 86 120 92"/>
+    <path d="M84 100 L92 100"/>
+    <path d="M108 100 L116 100"/>
+    <!-- 胡须 -->
+    <path d="M88 118 Q100 132 112 118"/>
+    <path d="M100 120 L100 142"/>
+    <!-- 元宝 -->
+    <path d="M66 152 Q100 138 134 152 Q142 168 126 172 L74 172 Q58 168 66 152 Z"/>
+    <path d="M84 154 Q100 148 116 154"/>
+    <!-- 铜钱 -->
+    <circle cx="150" cy="150" r="14"/>
+    <rect x="146" y="146" width="8" height="8" rx="1"/>
+  </g>
+</svg>

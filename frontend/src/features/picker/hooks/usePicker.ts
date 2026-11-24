@@ -151,6 +151,44 @@ export const usePicker = () => {
   }, []);
 
   /** 复式与胆拖副区共用：切换某个号码的选中状态。 */
+  /**
+   * 机选填充：按当前模式为各区域生成合法号码（机选是算法功能，不是玩法）。
+   */
+  const quickFill = useCallback(() => {
+    const pick = (min: number, max: number, count: number): number[] => {
+      const pool = Array.from({ length: max - min + 1 }, (_, index) => min + index);
+      for (let index = pool.length - 1; index > 0; index -= 1) {
+        const target = Math.floor(Math.random() * (index + 1));
+        [pool[index], pool[target]] = [pool[target], pool[index]];
+      }
+      return pool.slice(0, count).sort((a, b) => a - b);
+    };
+
+    const areas: Record<string, number[]> = {};
+    if (mode === 'banker') {
+      const [primary, ...rest] = game.areas;
+      const bankerCount = Math.max(primary.bankerMin ?? 1, 1);
+      const dragNeed = Math.max(primary.count + 1 - bankerCount, 1);
+      const banker = pick(primary.min, primary.max, bankerCount);
+      const drag = pick(primary.min, primary.max, dragNeed).filter(
+        (value) => !banker.includes(value),
+      );
+      setBankerState({ banker, drag });
+      areas[primary.key] = drag;
+      for (const area of rest) {
+        areas[area.key] = pick(area.min, area.max, area.count);
+      }
+    } else {
+      for (const area of game.areas) {
+        const extra = mode === 'multiple' ? 2 : 0;
+        areas[area.key] = pick(area.min, area.max, area.count + extra);
+      }
+      setBankerState({ banker: [], drag: [] });
+    }
+    setSelections(areas);
+    setResult(null);
+  }, [mode, game]);
+
   const toggleSelection = useCallback((areaKey: AreaKey, value: number) => {
     setSelections((previous) => {
       const current = previous[areaKey] ?? [];
@@ -325,6 +363,7 @@ export const usePicker = () => {
     setMode,
     setQuickCount,
     setStrategy,
+    quickFill,
     toggleSelection,
     cycleBankerNumber,
     generate,
