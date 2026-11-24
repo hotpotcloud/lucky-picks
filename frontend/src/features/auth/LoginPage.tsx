@@ -26,7 +26,7 @@ const LoginPage = () => {
         aria-label="财神"
         onClick={() => setUnlocked(true)}
       >
-        <img src={`${import.meta.env.BASE_URL}caishen-watermark.svg`} alt="" />
+        <img src={`${import.meta.env.BASE_URL}caishen-watermark.png`} alt="" />
       </button>
 
       <div className="login-bezel">

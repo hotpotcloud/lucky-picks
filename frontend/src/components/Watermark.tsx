@@ -15,7 +15,7 @@ const Watermark = () => (
     {CORNERS.map((corner) => (
       <img
         key={corner}
-        src={`${import.meta.env.BASE_URL}caishen-watermark.svg`}
+        src={`${import.meta.env.BASE_URL}caishen-watermark.png`}
         alt=""
         className={`watermark-img ${corner}`}
       />
