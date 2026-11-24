@@ -179,6 +179,12 @@ def health() -> dict:
         if database.count_draws("redblue") or database.count_draws("frontback")
         else "degraded",
         "version": "2.0.0",
+        "database": {
+            "type": settings.db_type,
+            "name": settings.db_name if settings.db_type == "mariadb" else settings.db_path,
+            "version": database.db_version(),
+            "draws": database.count_draws("redblue") + database.count_draws("frontback"),
+        },
         "dataUpdatedAt": database.latest_draw("redblue").fetched_at
         if database.latest_draw("redblue")
         else None,

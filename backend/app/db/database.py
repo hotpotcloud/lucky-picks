@@ -306,6 +306,18 @@ class Database:
         )
         self.connection.commit()
 
+    def db_version(self) -> str:
+        """返回数据库版本信息。
+
+        Returns:
+            数据库版本字符串；查询失败时返回空串。
+        """
+        try:
+            row = self.connection.execute("SELECT VERSION() AS version").fetchone()
+            return str(row["version"]) if row else ""
+        except Exception:
+            return ""
+
     def close(self) -> None:
         """关闭连接。"""
         self.connection.close()

@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 
 from app.common.response import ok_response
+from app.config.config import settings
 from app.db.database import Database
 from app.dependencies import get_current_user, get_database
 from app.draws.service import data_meta
@@ -30,6 +31,13 @@ def meta(
         统一响应结构。
     """
     return ok_response(
-        {game_id.value: data_meta(database, game_id.value) for game_id in GAME_ORDER},
+        {
+            "database": {
+                "type": settings.db_type,
+                "name": settings.db_name if settings.db_type == "mariadb" else settings.db_path,
+                "version": database.db_version(),
+            },
+            "games": {game_id.value: data_meta(database, game_id.value) for game_id in GAME_ORDER},
+        },
         request,
     )
