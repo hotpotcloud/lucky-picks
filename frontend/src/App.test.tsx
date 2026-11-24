@@ -3,13 +3,16 @@ import { App as AntdApp, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
+import { AuthProvider } from './features/auth/AuthContext';
 
 /** 以与生产入口一致的 Provider 包裹渲染应用。 */
 const renderApp = () =>
   render(
     <ConfigProvider locale={zhCN}>
       <AntdApp>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </AntdApp>
     </ConfigProvider>,
   );
@@ -17,6 +20,10 @@ const renderApp = () =>
 describe('App 交互（TC-013 / TC-014）', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.localStorage.setItem(
+      'lucky-picks:offline-user',
+      JSON.stringify({ id: 0, username: 'admin', role: 'admin' }),
+    );
   });
 
   it('展示免责声明且不含误导性文案（TC-014）', () => {
