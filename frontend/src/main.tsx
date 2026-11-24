@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App as AntdApp, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import App from './App';
+import { AuthProvider } from './features/auth/AuthContext';
 import './index.css';
 
 /**
@@ -19,7 +20,9 @@ createRoot(container).render(
   <StrictMode>
     <ConfigProvider locale={zhCN}>
       <AntdApp>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </AntdApp>
     </ConfigProvider>
   </StrictMode>,

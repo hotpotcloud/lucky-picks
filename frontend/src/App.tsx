@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Alert, Button, Card, Empty, Segmented, Space, Spin, Tag, Typography } from 'antd';
-import { AuthProvider, useAuth } from './features/auth/AuthContext';
+import { useAuth } from './features/auth/AuthContext';
 import LoginPage from './features/auth/LoginPage';
 import GameSwitcher from './features/picker/components/GameSwitcher';
 import QuickPickPanel from './features/picker/components/QuickPickPanel';
@@ -242,11 +242,7 @@ const App = () => {
   if (!ready) {
     return <Spin size="large" />;
   }
-  return (
-    <AuthProvider>
-      {user ? <MainView /> : <LoginPage />}
-    </AuthProvider>
-  );
+  return user ? <MainView /> : <LoginPage />;
 };
 
 export default App;
