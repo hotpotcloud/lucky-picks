@@ -92,7 +92,6 @@ export const TreasureScene = () => (
       </div>
       <div className="bowl-body">
         <span className="bowl-shine" />
-        <span className="bowl-emblem">LP</span>
       </div>
       <div className="bowl-foot" />
       <div className="bowl-shadow" />

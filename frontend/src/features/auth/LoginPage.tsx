@@ -35,7 +35,6 @@ const LoginPage = () => {
           LUCKY PICKS
         </div>
         <div className="landing-brand">
-          <span className="brand-mark">LP</span>
           <strong>LUCKY PICKS</strong>
         </div>
         <TreasureScene />
