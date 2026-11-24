@@ -1,0 +1,22 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: lucky-picks-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root-password}
+      MARIADB_DATABASE: ${DB_NAME:-lucky_picks}
+      MARIADB_USER: ${DB_USER:-lucky}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-change-me}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mariadb_data:

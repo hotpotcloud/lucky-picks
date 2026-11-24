@@ -178,23 +178,20 @@ class Draw(SQLModel, table=True):
 - SQLite 文件不入库；容器重启后从 JSON 重建，保证无状态。
 - 数据保留全部可抓取期数（至少 500 期），排序按期号/日期倒序。
 
-## 5.1 数据库选型
+## 5.1 数据库选型（已按需求提出方决定改为 MariaDB）
 
-结论：**使用 SQLite，不引入独立数据库服务**。理由（按运维成本与内存占用排序）：
+**结论：生产使用 MariaDB（pymysql 驱动），测试与本地离线抓取可用 SQLite 内存库。**
 
-| 方案 | 空实例内存 | 运维成本 | 是否适合本项目 |
-|---|---|---|---|
-| SQLite | 约 2MB 缓存，嵌入式无服务进程 | 最低，随代码部署 | ✅ 适合：只追加的少量结构化记录、无并发写入、无多实例 |
-| Redis | 约 1–3MB | 需独立实例，纯内存不适合做事实源 | ❌ 只在需要缓存/限流时考虑 |
-| MongoDB | 约 50–100MB（WiredTiger 缓存） | 需独立实例，schema 约束弱 | ❌ 数据结构固定，无文档型需求 |
-| MySQL / MariaDB | 约 100–400MB（缓冲池 128MB 起） | 需独立实例 | ❌ 过度资源占用 |
-| PostgreSQL | 约 30–60MB 实际占用，shared_buffers 默认 128MB | 需独立实例或托管服务 | ⏸️ 升级路径：出现多实例写入、用户数据或复杂聚合时再迁移 |
+参考内存占用（用户提供的评估）：SQLite 约 2MB 缓存；Redis 空实例 1–3MB 但纯内存不适合作为事实源；MongoDB 空实例 50–100MB；MySQL/MariaDB 空实例 100–400MB（InnoDB 缓冲池默认 128MB 起）；PostgreSQL 约 30–60MB 但 shared_buffers 默认 128MB。本项目数据量（约 5000 期开奖记录）对 MariaDB 而言极小，用户已明确选择 MariaDB 作为生产数据库。
 
-工程约束：
+实现约束：
 
-- 事实源是仓库内的规范化 JSON；SQLite 由启动流程导入，属可重建缓存。
-- 免费实例磁盘为临时盘，重启后自动从 JSON 重建，不依赖持久卷。
-- 数据迁移预留：提供 JSON 导出命令，便于将来导入 PostgreSQL。
+- 生产默认 `DB_TYPE=mariadb`，连接参数由 `DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME` 提供。
+- 数据层用连接封装统一 `?`（SQLite）与 `%s`（pymysql）占位符、DictCursor 与 Row；建表语句按方言选择 `AUTO_INCREMENT` / `AUTOINCREMENT`，UPSERT 按方言选择 `ON DUPLICATE KEY UPDATE` / `ON CONFLICT DO UPDATE`。
+- 三张表：`draws`（全部可获取的历史期次，主键 game+issue）、`users`（账号，PBKDF2 加盐哈希）、`settings`（键值配置，含令牌签名密钥）。
+- 默认账号 `admin` / `888888` 在用户表为空时自动创建；登录后请尽快修改密码。
+- 免费/本地部署可用 `backend/docker-compose.yml` 启动 MariaDB 11.4；正式部署由需求提出方提供数据库实例。
+- 抓取脚本 `scripts/fetch_draws.py` 按 `DB_TYPE` 选择数据库，把**能获取到的每一期**都写入（重复抓取 UPSERT），并导出规范化 JSON 快照供前端离线使用。
 
 ## 6. 数据抓取与更新
 

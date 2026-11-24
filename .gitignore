@@ -23,6 +23,9 @@ htmlcov/
 *.pem
 *.key
 
+# 本地数据库文件（不入库）
+backend/data/*.db
+
 # ---------- Node ----------
 node_modules/
 .pnpm-store/
