@@ -9,16 +9,16 @@
 
 1. 创建目录：
    ```bash
-   mkdir -p /opt/lucky-picks/backend
+   mkdir -p /opt/lucky-picks/config /opt/lucky-picks/backend
    ```
 2. 把仓库模板复制为配置文件并填写：
    ```bash
-   cp /opt/lucky-picks/backend/.env.example /opt/lucky-picks/backend/.env
-   chmod 600 /opt/lucky-picks/backend/.env
+   cp /opt/lucky-picks/config/.env.example /opt/lucky-picks/config/.env
+   chmod 600 /opt/lucky-picks/config/.env
    ```
    首次可由本机执行：
    ```bash
-   scp backend/.env.example root@119.29.189.103:/opt/lucky-picks/backend/.env
+   scp backend/.env.example root@119.29.189.103:/opt/lucky-picks/config/.env
    ```
 3. `.env` 必填项见模板；脚本会自动加载它，不会把内容打印到日志。
 
