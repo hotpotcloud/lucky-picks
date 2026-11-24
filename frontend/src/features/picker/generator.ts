@@ -9,7 +9,7 @@ import {
 import type { RandomSource } from './random';
 import { sampleDistinct } from './random';
 import type { BallArea, GameConfig, QuickStrategy, TicketNumbers } from './types';
-import { LotteryError } from './types';
+import { SelectionError } from './types';
 
 /** 复式参数校验与组合信息。 */
 export interface SelectionInfo {
@@ -138,7 +138,7 @@ const scoreBalancedCandidate = (area: BallArea, numbers: readonly number[]): num
  * 单测可通过注入确定性 rng 复现结果。
  */
 const sampleBalanced = (area: BallArea, rng: RandomSource): number[] => {
-  // 单号/双号区域（蓝球、大乐透后区）的「均衡」会退化成固定组合，
+  // 单号/双号区域（蓝球、前后玩法后区）的「均衡」会退化成固定组合，
   // 因此小区域直接随机，避免出现永远只能选 08/09 或和值固定的配对。
   if (area.count <= 2) {
     return sampleDistinct(area.min, area.max, area.count, rng);
@@ -161,7 +161,7 @@ const sampleBalanced = (area: BallArea, rng: RandomSource): number[] => {
 
 /**
  * 生成单注机选号码。
- * @param game 彩种规则
+ * @param game 玩法规则
  * @param strategy 随机或均衡
  * @param rng 随机源
  */
@@ -182,11 +182,11 @@ export const generateQuickTicket = (
 
 /**
  * 生成多注机选号码。
- * @param game 彩种规则
+ * @param game 玩法规则
  * @param count 注数，必须在 1–10 之间
  * @param strategy 随机或均衡
  * @param rng 随机源
- * @throws LotteryError 当注数非法时
+ * @throws SelectionError 当注数非法时
  */
 export const generateQuickTickets = (
   game: GameConfig,
@@ -195,14 +195,14 @@ export const generateQuickTickets = (
   rng: RandomSource = Math.random,
 ): TicketNumbers[] => {
   if (!Number.isInteger(count) || count < QUICK_PICK_MIN || count > QUICK_PICK_MAX) {
-    throw new LotteryError(`机选注数必须是 ${QUICK_PICK_MIN}–${QUICK_PICK_MAX} 的整数`);
+    throw new SelectionError(`机选注数必须是 ${QUICK_PICK_MIN}–${QUICK_PICK_MAX} 的整数`);
   }
   return Array.from({ length: count }, () => generateQuickTicket(game, strategy, rng));
 };
 
 /**
  * 校验复式选号并计算组合数与金额。
- * @param game 彩种规则
+ * @param game 玩法规则
  * @param selection 各区域已选号码
  */
 export const calculateMultipleSelection = (
@@ -243,7 +243,7 @@ export const calculateMultipleSelection = (
 /**
  * 校验胆拖选号并计算组合数与金额。
  * 约定：第一个区域为胆拖区，其余区域按普通选号处理。
- * @param game 彩种规则
+ * @param game 玩法规则
  * @param banker 胆码（仅主区）
  * @param drag 拖码（仅主区）
  * @param secondary 其余区域已选号码
@@ -324,11 +324,11 @@ export const calculateBankerSelection = (
 
 /**
  * 生成胆拖的全部组合号码。
- * @param game 彩种规则
+ * @param game 玩法规则
  * @param banker 胆码（仅主区）
  * @param drag 拖码（仅主区）
  * @param secondary 其余区域已选号码
- * @throws LotteryError 参数非法或组合数超限时
+ * @throws SelectionError 参数非法或组合数超限时
  */
 export const generateBankerTickets = (
   game: GameConfig,
@@ -338,7 +338,7 @@ export const generateBankerTickets = (
 ): TicketNumbers[] => {
   const info = calculateBankerSelection(game, banker, drag, secondary);
   if (!info.valid) {
-    throw new LotteryError(info.error ?? '胆拖参数不合法');
+    throw new SelectionError(info.error ?? '胆拖参数不合法');
   }
 
   const [primary, ...restAreas] = game.areas;

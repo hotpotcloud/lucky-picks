@@ -17,7 +17,7 @@ interface HistoryListProps {
 }
 
 /**
- * 本地历史列表：展示彩种、模式、时间、注数与首注号码，支持复制与删除。
+ * 本地历史列表：展示玩法、模式、时间、注数与首注号码，支持复制与删除。
  * 记录只保存在当前浏览器，不做任何上传。
  */
 const HistoryList = ({ records, onCopy, onDelete }: HistoryListProps) => (

@@ -2,16 +2,16 @@ import { GAME_CONFIGS, GAME_ORDER } from '../config';
 import type { GameId } from '../types';
 import { Segmented, Typography } from 'antd';
 
-/** 彩种切换组件属性。 */
+/** 玩法切换组件属性。 */
 interface GameSwitcherProps {
-  /** 当前彩种。 */
+  /** 当前玩法。 */
   value: GameId;
   /** 切换回调。 */
   onChange: (value: GameId) => void;
 }
 
 /**
- * 彩种切换与规则说明。
+ * 玩法切换与规则说明。
  * 使用 antd Segmented，避免自创切换控件。
  */
 const GameSwitcher = ({ value, onChange }: GameSwitcherProps) => {

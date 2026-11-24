@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SSQ_CONFIG } from './config';
+import { REDBLUE_CONFIG } from './config';
 import { formatAmount, formatBall, formatTicketText, formatTicketsText } from './format';
 
 describe('format（TC-011 文本格式）', () => {
@@ -9,7 +9,7 @@ describe('format（TC-011 文本格式）', () => {
   });
 
   it('单注文本包含区域名称与号码', () => {
-    const text = formatTicketText(SSQ_CONFIG, {
+    const text = formatTicketText(REDBLUE_CONFIG, {
       red: [1, 5, 12, 19, 26, 33],
       blue: [8],
     });
@@ -17,7 +17,7 @@ describe('format（TC-011 文本格式）', () => {
   });
 
   it('多注文本按序号分行', () => {
-    const text = formatTicketsText(SSQ_CONFIG, [
+    const text = formatTicketsText(REDBLUE_CONFIG, [
       { red: [1, 2, 3, 4, 5, 6], blue: [7] },
       { red: [7, 8, 9, 10, 11, 12], blue: [8] },
     ]);

@@ -1,12 +1,12 @@
 /**
- * 彩票领域公共类型定义。
+ * 选号领域公共类型定义。
  * 所有核心逻辑（生成、组合、分析）只依赖这些类型，不依赖 React 或浏览器 API。
  */
 
-/** 支持的彩种标识。 */
-export type GameId = 'ssq' | 'dlt';
+/** 支持的玩法标识。 */
+export type GameId = 'redblue' | 'frontback';
 
-/** 号码区域标识：双色球为 red/blue，大乐透为 front/back。 */
+/** 号码区域标识：红蓝玩法为 red/blue，前后玩法为 front/back。 */
 export type AreaKey = 'red' | 'blue' | 'front' | 'back';
 
 /** 选号模式：机选、复式、胆拖。 */
@@ -31,11 +31,11 @@ export interface BallArea {
   color: 'red' | 'blue';
 }
 
-/** 彩种完整规则。 */
+/** 玩法完整规则。 */
 export interface GameConfig {
-  /** 彩种标识。 */
+  /** 玩法标识。 */
   id: GameId;
-  /** 彩种名称。 */
+  /** 玩法名称。 */
   name: string;
   /** 规则说明文案。 */
   description: string;
@@ -62,9 +62,9 @@ export interface TicketAnalysis {
 export interface HistoryRecord {
   /** 记录唯一标识。 */
   id: string;
-  /** 彩种标识。 */
+  /** 玩法标识。 */
   gameId: GameId;
-  /** 彩种名称快照，避免规则调整后历史显示错乱。 */
+  /** 玩法名称快照，避免规则调整后历史显示错乱。 */
   gameName: string;
   /** 生成模式。 */
   mode: SelectionMode;
@@ -81,9 +81,9 @@ export interface HistoryRecord {
 }
 
 /** 参数校验错误，携带可直接展示给用户的中文信息。 */
-export class LotteryError extends Error {
+export class SelectionError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'LotteryError';
+    this.name = 'SelectionError';
   }
 }

@@ -6,7 +6,7 @@ export const formatBall = (value: number): string => value.toString().padStart(2
 /**
  * 把一注号码格式化为易读文本，例如：
  * 「红球 01 05 12 19 26 33 | 蓝球 08」
- * @param game 彩种规则，用于获取区域名称与顺序
+ * @param game 玩法规则，用于获取区域名称与顺序
  * @param numbers 号码集合
  */
 export const formatTicketText = (game: GameConfig, numbers: TicketNumbers): string =>
@@ -19,7 +19,7 @@ export const formatTicketText = (game: GameConfig, numbers: TicketNumbers): stri
 
 /**
  * 把多注号码格式化为可复制的多行文本。
- * @param game 彩种规则
+ * @param game 玩法规则
  * @param tickets 号码列表
  */
 export const formatTicketsText = (game: GameConfig, tickets: readonly TicketNumbers[]): string =>

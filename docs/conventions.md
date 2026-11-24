@@ -20,8 +20,24 @@
 - 不使用 `any`；确需规避第三方类型问题时使用 `unknown` 并收窄。
 - 数字与字符串字面量集中到 `constants.ts`，禁止散落魔法值。
 
+## 术语规范（强约束）
+
+项目内不得出现真实游戏名称及其等价写法；受限词清单与例外规则以 `frontend/scripts/check-terminology.mjs` 为准，统一使用中性术语：
+
+| 场景 | 规范用词 |
+|---|---|
+| 玩法 A | `红蓝玩法` / `Red-Blue`，标识符 `redblue` |
+| 玩法 B | `前后玩法` / `Front-Back`，标识符 `frontback` |
+| 品类 | 选号 / number picking / number advisor |
+| 官方来源 | `官方数据源 A` / `官方数据源 B` |
+
+- 适用范围：代码、注释、界面文案、文档、提交信息、仓库描述与 Pages 元数据。
+- 例外：第三方仓库名、官方域名、上游接口字段名等外部专有名词按原样引用。
+- 强制校验：`cd frontend && pnpm check:terms`，CI 同样执行，失败即阻断。
+
 ## 验证门禁
 
+- `cd frontend && pnpm check:terms`
 - `cd frontend && pnpm lint`
 - `cd frontend && pnpm typecheck`
 - `cd frontend && pnpm test`

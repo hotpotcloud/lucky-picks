@@ -5,7 +5,7 @@ import NumberGrid from './NumberGrid';
 
 /** 胆拖参数面板属性。 */
 interface BankerPanelProps {
-  /** 彩种规则，第一个区域为胆拖区。 */
+  /** 玩法规则，第一个区域为胆拖区。 */
   game: GameConfig;
   /** 胆码。 */
   banker: readonly number[];

@@ -19,6 +19,7 @@
 
 - 安装依赖：`cd frontend && pnpm install`
 - 开发：`cd frontend && pnpm dev`
+- 术语检查：`cd frontend && pnpm check:terms`
 - Lint：`cd frontend && pnpm lint`
 - 类型检查：`cd frontend && pnpm typecheck`
 - 测试：`cd frontend && pnpm test`
@@ -38,16 +39,25 @@
 
 新增或升级依赖；改 CI 与构建配置；删除文件；改数据库结构；改契约；范围外改动。
 
+## 术语规范（强约束）
+
+- 项目内不得出现真实游戏名称及其等价写法；受限词清单与例外规则以 `frontend/scripts/check-terminology.mjs` 为准（中文受限字、对应英文写法、自撰同义表述均禁止）。
+- 统一用中性术语：玩法 A = `红蓝玩法` / `Red-Blue`（标识符 `redblue`）；玩法 B = `前后玩法` / `Front-Back`（标识符 `frontback`）；品类用「选号」；官方来源用 `官方数据源 A` / `官方数据源 B`。
+- 例外：第三方仓库名、官方域名、上游接口字段名等外部专有名词按原样引用。
+- 提交前必须执行 `pnpm check:terms`；CI 会阻断。
+
 ## 禁止
 
 - 修改、删除、跳过或弱化测试来让测试通过
 - 提交密钥、凭据、生产数据；读取 `.env` 和密钥目录
 - 操作生产环境；强制推送；绕过 CI 与评审
 - 未经确认直接合并
-- 接入真实开奖数据或第三方彩票接口（需先确认来源与合规）
+- 接入真实开奖数据或第三方选号接口（需先确认来源与合规）
 
 ## 文档索引
 
 - 架构：`docs/architecture.md`
 - 规范：`docs/conventions.md`
-- 当前特性：`docs/features/FEAT-001-lottery-advisor/`
+- 当前特性：`docs/features/FEAT-001-number-advisor/`
+- 设计中的特性：`docs/features/FEAT-002/`（历史数据、推荐算法、全玩法、Python 后端）
+- 候选需求池：`docs/features/FEAT-003/backlog.md`

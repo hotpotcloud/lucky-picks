@@ -16,26 +16,26 @@
   - 页面渲染标题与免责声明占位。
 - 验证命令：`cd frontend && pnpm lint && pnpm typecheck && pnpm build`
 
-## TASK-FEAT-001-02 彩票核心逻辑与单元测试
+## TASK-FEAT-001-02 选号核心逻辑与单元测试
 
-- 目标：实现彩种配置、随机与均衡机选、复式/胆拖组合、号码分析与格式化，全部纯函数。
+- 目标：实现玩法配置、随机与均衡机选、复式/胆拖组合、号码分析与格式化，全部纯函数。
 - 关联：FEAT-001 / TC-001、TC-002、TC-003、TC-005、TC-006、TC-007、TC-008、TC-009、TC-010、TC-011
 - 依赖任务：TASK-FEAT-001-01
 - 端：前端
-- 可修改范围：`frontend/src/features/lottery/{types,config,constants,random,generator,analysis,format}.ts`、对应 `*.test.ts`、`frontend/src/services/storage.ts`、`storage.test.ts`
+- 可修改范围：`frontend/src/features/picker/{types,config,constants,random,generator,analysis,format}.ts`、对应 `*.test.ts`、`frontend/src/services/storage.ts`、`storage.test.ts`
 - 禁止事项：不引入随机库、组合库；不访问网络；不修改 UI 文件。
 - 验收标准：上述 TC 的单测全部通过；`pnpm test` 通过。
 - 验证命令：`cd frontend && pnpm test`
 
 ## TASK-FEAT-001-03 机选页面与结果展示
 
-- 目标：完成彩种切换、机选参数、生成结果与分析展示。
+- 目标：完成玩法切换、机选参数、生成结果与分析展示。
 - 关联：FEAT-001 / TC-001、TC-002、TC-003、TC-004、TC-010、TC-013、TC-014、TC-016
 - 依赖任务：TASK-FEAT-001-02
 - 端：前端
-- 可修改范围：`frontend/src/App.tsx`、`frontend/src/features/lottery/hooks/**`、`frontend/src/features/lottery/components/{GameSwitcher,QuickPickPanel,TicketList,NumberBall}.tsx`、`frontend/src/index.css`
+- 可修改范围：`frontend/src/App.tsx`、`frontend/src/features/picker/hooks/**`、`frontend/src/features/picker/components/{GameSwitcher,QuickPickPanel,TicketList,NumberBall}.tsx`、`frontend/src/index.css`
 - 禁止事项：不实现复式/胆拖逻辑；不改核心生成函数。
-- 验收标准：机选 1–10 注可用；非法参数禁用并提示；切换彩种清空选择。
+- 验收标准：机选 1–10 注可用；非法参数禁用并提示；切换玩法清空选择。
 - 验证命令：`cd frontend && pnpm lint && pnpm typecheck && pnpm test`
 
 ## TASK-FEAT-001-04 复式与胆拖页面
@@ -44,7 +44,7 @@
 - 关联：FEAT-001 / TC-005、TC-006、TC-007、TC-008、TC-009
 - 依赖任务：TASK-FEAT-001-03
 - 端：前端
-- 可修改范围：`frontend/src/features/lottery/components/{MultiplePanel,BankerPanel}.tsx`、`frontend/src/features/lottery/hooks/**`、`frontend/src/App.tsx`
+- 可修改范围：`frontend/src/features/picker/components/{MultiplePanel,BankerPanel}.tsx`、`frontend/src/features/picker/hooks/**`、`frontend/src/App.tsx`
 - 禁止事项：不改动机选算法与分析模块。
 - 验收标准：复式与胆拖的注数、金额与手工计算一致；超限或非法组合被拦截。
 - 验证命令：`cd frontend && pnpm lint && pnpm typecheck && pnpm test`
@@ -55,7 +55,7 @@
 - 关联：FEAT-001 / TC-011、TC-012、TC-015
 - 依赖任务：TASK-FEAT-001-04
 - 端：前端
-- 可修改范围：`frontend/src/features/lottery/components/HistoryList.tsx`、`frontend/src/features/lottery/hooks/**`、`frontend/src/services/storage.ts`、`frontend/src/App.tsx`
+- 可修改范围：`frontend/src/features/picker/components/HistoryList.tsx`、`frontend/src/features/picker/hooks/**`、`frontend/src/services/storage.ts`、`frontend/src/App.tsx`
 - 禁止事项：不上传数据到任何服务器；不引入云端存储。
 - 验收标准：复制、保存、刷新保留、删除、清空均可用；存储异常不导致白屏。
 - 验证命令：`cd frontend && pnpm lint && pnpm typecheck && pnpm test`
@@ -66,7 +66,7 @@
 - 关联：FEAT-001 / 全部核心用例（线上冒烟）
 - 依赖任务：TASK-FEAT-001-05
 - 端：共享（CI 配置与文档）
-- 可修改范围：`.github/workflows/deploy.yml`、`README.md`、`docs/features/FEAT-001-lottery-advisor/**`、`docs/architecture.md`、`docs/conventions.md`
+- 可修改范围：`.github/workflows/deploy.yml`、`README.md`、`docs/features/FEAT-001-number-advisor/**`、`docs/architecture.md`、`docs/conventions.md`
 - 禁止事项：不在仓库中提交任何密钥；不修改业务代码行为。
 - 验收标准：`main` 推送后 Actions 部署成功，线上地址可访问且主流程可用。
 - 验证命令：`gh run watch`；浏览器访问线上地址

@@ -2,7 +2,7 @@ import type { BallArea, GameConfig, TicketAnalysis, TicketNumbers } from './type
 
 /**
  * 大小号分界阈值：大于等于该值视为「大号」。
- * 采用国内主流口径：双色球小号 01–16、大号 17–33；大乐透小号 01–17、大号 18–35。
+ * 采用国内主流口径：红蓝玩法小号 01–16、大号 17–33；前后玩法小号 01–17、大号 18–35。
  */
 export const getBigSmallThreshold = (area: BallArea): number =>
   Math.ceil((area.min + area.max) / 2);
@@ -17,7 +17,7 @@ export const ZONE_COUNT = 3;
 /**
  * 计算一注号码的主区分布分析。
  * 分析结果仅供展示，不参与任何中奖判断。
- * @param game 彩种规则
+ * @param game 玩法规则
  * @param numbers 号码集合
  */
 export const analyzeTicket = (game: GameConfig, numbers: TicketNumbers): TicketAnalysis => {

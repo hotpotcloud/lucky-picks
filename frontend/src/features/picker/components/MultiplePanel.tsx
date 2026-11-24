@@ -5,7 +5,7 @@ import NumberGrid from './NumberGrid';
 
 /** 复式参数面板属性。 */
 interface MultiplePanelProps {
-  /** 彩种规则。 */
+  /** 玩法规则。 */
   game: GameConfig;
   /** 各区域已选号码。 */
   selections: TicketNumbers;

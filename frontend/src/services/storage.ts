@@ -1,10 +1,10 @@
-import { GAME_CONFIGS } from '../features/lottery/config';
+import { GAME_CONFIGS } from '../features/picker/config';
 import {
   HISTORY_STORAGE_KEY,
   MAX_HISTORY_RECORDS,
   MAX_TICKETS,
-} from '../features/lottery/constants';
-import type { GameId, HistoryRecord, SelectionMode, TicketNumbers } from '../features/lottery/types';
+} from '../features/picker/constants';
+import type { GameId, HistoryRecord, SelectionMode, TicketNumbers } from '../features/picker/types';
 
 /**
  * 本地历史存储。
@@ -17,7 +17,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
 /**
- * 校验号码集合：区域键必须属于对应彩种，号码必须为范围内整数且不重复。
+ * 校验号码集合：区域键必须属于对应玩法，号码必须为范围内整数且不重复。
  * 这样可拦截 NaN、超范围、未知区域等语义损坏的数据，避免渲染出垃圾内容。
  */
 const isTicketNumbers = (value: unknown, gameId: GameId): value is TicketNumbers => {
@@ -55,7 +55,7 @@ const isHistoryRecord = (value: unknown): value is HistoryRecord => {
   if (!isObject(value)) {
     return false;
   }
-  const gameIds: GameId[] = ['ssq', 'dlt'];
+  const gameIds: GameId[] = ['redblue', 'frontback'];
   const modes: SelectionMode[] = ['quick', 'multiple', 'banker'];
   const gameId = value.gameId as GameId;
 

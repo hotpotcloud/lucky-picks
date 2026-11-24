@@ -6,7 +6,7 @@ import NumberBall from './NumberBall';
 
 /** 结果列表属性。 */
 interface TicketListProps {
-  /** 彩种规则。 */
+  /** 玩法规则。 */
   game: GameConfig;
   /** 号码列表。 */
   tickets: readonly TicketNumbers[];

@@ -22,7 +22,7 @@ import type {
   SelectionMode,
   TicketNumbers,
 } from '../types';
-import { LotteryError } from '../types';
+import { SelectionError } from '../types';
 import {
   isHistoryAvailable,
   loadHistory,
@@ -69,8 +69,8 @@ const createId = (): string => {
  * 选号页面状态与动作。
  * 组件只负责渲染，所有参数校验、生成与存储调用集中在本 Hook。
  */
-export const useLottery = () => {
-  const [gameId, setGameId] = useState<GameId>('ssq');
+export const usePicker = () => {
+  const [gameId, setGameId] = useState<GameId>('redblue');
   const game = GAME_CONFIGS[gameId];
 
   const [mode, setModeState] = useState<SelectionMode>('quick');
@@ -124,7 +124,7 @@ export const useLottery = () => {
     return quickInfo;
   }, [mode, multipleInfo, bankerInfo, quickInfo]);
 
-  /** 切换彩种：清空所有选择与结果，避免跨彩种脏数据。 */
+  /** 切换玩法：清空所有选择与结果，避免跨玩法脏数据。 */
   const selectGame = useCallback((id: GameId) => {
     setGameId(id);
     setModeState('quick');
@@ -224,7 +224,7 @@ export const useLottery = () => {
       return { ok: true };
     } catch (error) {
       const message =
-        error instanceof LotteryError ? error.message : '生成失败，请稍后重试';
+        error instanceof SelectionError ? error.message : '生成失败，请稍后重试';
       return { ok: false, error: message };
     }
   }, [mode, game, quickCount, strategy, selections, bankerState]);

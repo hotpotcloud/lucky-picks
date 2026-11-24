@@ -67,7 +67,7 @@ body {
 }
 
 /* 号码球 */
-.lottery-ball {
+.number-ball {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -96,18 +96,18 @@ body {
 }
 
 /* 未选中的号码球显示为灰色 */
-.number-button:not(.is-selected) .lottery-ball {
+.number-button:not(.is-selected) .number-ball {
   background: #f0f0f0;
   color: #595959;
 }
 
 /* 胆拖语义色：胆码金色，拖码蓝色 */
-.number-button.is-banker .lottery-ball {
+.number-button.is-banker .number-ball {
   background: #ad6800;
   color: #fff;
 }
 
-.number-button.is-drag .lottery-ball {
+.number-button.is-drag .number-ball {
   background: #1677ff;
   color: #fff;
 }

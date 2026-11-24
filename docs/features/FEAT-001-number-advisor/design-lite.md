@@ -1,8 +1,8 @@
 # FEAT-001 设计（单人全栈 · 垂直切片）
 
-- 关联需求：`docs/features/FEAT-001-lottery-advisor/requirement.md`
-- 关联用例：`docs/features/FEAT-001-lottery-advisor/test-cases.md`
-- 任务卡：`docs/features/FEAT-001-lottery-advisor/tasks.md`
+- 关联需求：`docs/features/FEAT-001-number-advisor/requirement.md`
+- 关联用例：`docs/features/FEAT-001-number-advisor/test-cases.md`
+- 任务卡：`docs/features/FEAT-001-number-advisor/tasks.md`
 
 ## 1. 总体方案
 
@@ -11,7 +11,7 @@
 ```mermaid
 flowchart LR
   User[用户] --> Page[App 页面]
-  Page --> Hook[useLotterySelection]
+  Page --> Hook[usePickerSelection]
   Hook --> Generator[generator.ts]
   Hook --> Analysis[analysis.ts]
   Hook --> Storage[storage.ts]
@@ -44,9 +44,9 @@ frontend/
     ├── main.tsx                # 应用入口与 antd ConfigProvider
     ├── App.tsx                 # 页面入口（只做组合，不写业务计算）
     ├── index.css               # 全局基础样式
-    ├── features/lottery/
-    │   ├── types.ts            # 彩种配置、号码、组合、分析等类型
-    │   ├── config.ts           # 双色球 / 大乐透规则常量
+    ├── features/picker/
+    │   ├── types.ts            # 玩法配置、号码、组合、分析等类型
+    │   ├── config.ts           # 红蓝玩法 / 前后玩法规则常量
     │   ├── random.ts           # 可注入随机源的随机工具
     │   ├── generator.ts        # 机选、复式、胆拖、组合数计算
     │   ├── analysis.ts         # 奇偶/大小/和值/三区比
@@ -55,7 +55,7 @@ frontend/
     │   ├── generator.test.ts   # 生成逻辑单测
     │   ├── analysis.test.ts    # 分析逻辑单测
     │   ├── format.test.ts      # 格式化单测
-    │   ├── hooks/useLottery.ts # 选号状态与动作
+    │   ├── hooks/usePicker.ts # 选号状态与动作
     │   └── components/
     │       ├── GameSwitcher.tsx
     │       ├── QuickPickPanel.tsx
@@ -70,8 +70,8 @@ frontend/
 ## 4. 核心数据模型
 
 ```ts
-// 彩种唯一标识
-type GameId = 'ssq' | 'dlt';
+// 玩法唯一标识
+type GameId = 'redblue' | 'frontback';
 
 // 单个区域的规则：范围、基础号码个数、名称、球的颜色语义
 interface BallArea {
@@ -82,10 +82,10 @@ interface BallArea {
   count: number;      // 单注基础个数
 }
 
-// 一个彩种的完整规则
+// 一个玩法的完整规则
 interface GameConfig {
   id: GameId;
-  name: string;        // 彩种名称
+  name: string;        // 玩法名称
   description: string; // 规则说明
   areas: BallArea[];   // 通常 2 个区域
 }
@@ -113,7 +113,7 @@ interface TicketAnalysis {
   - 和值目标：接近「最小和 + 最大和」的中点。
   - 三区分布目标：主区各区间个数尽量平均。
   - 分数 = 各项偏差绝对值之和，越小越好；同分随机取一个。
-  - 单号/双号区域（蓝球、大乐透后区）不套用均衡目标，直接随机，避免退化为固定号码。
+  - 单号/双号区域（蓝球、前后玩法后区）不套用均衡目标，直接随机，避免退化为固定号码。
 - 随机源可注入，单测使用固定序列保证可重复。
 
 ### 5.2 复式
@@ -133,25 +133,25 @@ interface TicketAnalysis {
 ### 5.4 分析
 
 - 奇偶比：主区奇数个数 : 偶数个数。
-- 大小比：主区大于等于大小分界阈值的个数 : 其余个数（双色球大号 17–33，大乐透大号 18–35）。
+- 大小比：主区大于等于大小分界阈值的个数 : 其余个数（红蓝玩法大号 17–33，前后玩法大号 18–35）。
 - 和值：主区号码之和。
 - 三区比：把主区范围三等分，统计各区个数。
 - 分析仅用于展示，不参与中奖判断。
 
 ## 6. 页面规格
 
-页面目的：单页完成「选彩种 → 选模式 → 设置参数 → 生成 → 查看/复制/保存」。
+页面目的：单页完成「选玩法 → 选模式 → 设置参数 → 生成 → 查看/复制/保存」。
 
 展示数据：
-- 顶部：产品名、彩种切换、免责声明（始终可见）。
-- 规则说明：当前彩种区域、范围、单注数量、2 元/注提示。
+- 顶部：产品名、玩法切换、免责声明（始终可见）。
+- 规则说明：当前玩法区域、范围、单注数量、2 元/注提示。
 - 模式切换：机选 / 复式 / 胆拖。
 - 参数区：按模式展示注数、策略或号码选择器；实时显示组合数与金额。
 - 结果区：号码球、分析指标、复制/保存按钮；空状态提示。
 - 历史区：本地保存记录，支持删除单条与清空。
 
 交互：
-- 切换彩种清空所有已选号码与结果，并重置参数到合法默认值。
+- 切换玩法清空所有已选号码与结果，并重置参数到合法默认值。
 - 生成按钮在参数非法时禁用，并在参数区展示具体原因。
 - 复制成功/失败、保存成功、清空确认均使用 antd `message` / `Modal.confirm`。
 
@@ -171,18 +171,18 @@ interface TicketAnalysis {
 
 ## 7. 错误处理与边界
 
-- 生成函数在参数非法时抛出带中文可读信息的 `LotteryError`，由 Hook 转为界面提示；复式/胆拖的校验函数返回 `SelectionInfo` 供实时展示。
+- 生成函数在参数非法时抛出带中文可读信息的 `SelectionError`，由 Hook 转为界面提示；复式/胆拖的校验函数返回 `SelectionInfo` 供实时展示。
 - 组合数使用组合公式计算，超过上限直接拒绝，避免枚举造成浏览器卡死。
 - 随机数范围使用闭区间 `[min, max]`，并对 `count > 范围长度` 做防御。
 - localStorage 读写包裹 try/catch；读取与写入分别判断可用性，只读时不误报「存储被禁用」；JSON 解析失败时返回空数组并清理损坏数据。
-- 历史记录会校验彩种、区域、号码范围、整数与时间有效性，语义损坏的数据直接丢弃。
+- 历史记录会校验玩法、区域、号码范围、整数与时间有效性，语义损坏的数据直接丢弃。
 - 单条历史最多保存 200 注号码（组合注数仍为真实值），超出时明确提示用户及时复制完整结果。
 - 剪贴板 API 不可用或拒绝时提示「复制失败，请手动选择号码」。
 
 ## 8. 测试策略
 
 - 纯函数单测：生成合法性、数量、均衡容差、组合数、胆拖含胆码、分析指标、格式化、存储异常。
-- 组件测试（少量）：免责声明渲染、非法参数禁用生成、切换彩种清空。
+- 组件测试（少量）：免责声明渲染、非法参数禁用生成、切换玩法清空。
 - 手工验证：360px 响应式、复制、刷新后历史、GitHub Pages 线上访问。
 - 门禁命令：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`。
 
@@ -206,7 +206,7 @@ interface TicketAnalysis {
 
 ## 11. 本轮不动项
 
-- 不接入任何第三方彩票数据接口。
+- 不接入任何第三方开奖数据接口。
 - 不引入路由、状态管理库、后端服务。
 - 不做主题切换、国际化、账号体系。
 - 不修改仓库根目录研发流程文档。

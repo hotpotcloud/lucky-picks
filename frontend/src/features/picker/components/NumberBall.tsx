@@ -14,11 +14,11 @@ interface NumberBallProps {
 
 /**
  * 只读号码球。
- * 颜色来自彩种区域配置，视觉样式集中在 index.css。
+ * 颜色来自玩法区域配置，视觉样式集中在 index.css。
  */
 const NumberBall = ({ value, color, size = 'default', variant }: NumberBallProps) => {
   const className = [
-    'lottery-ball',
+    'number-ball',
     `ball-${color}`,
     size === 'small' ? 'ball-small' : '',
     variant ? `ball-${variant}` : '',

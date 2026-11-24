@@ -1,9 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadHistory } from '../../../services/storage';
-import { useLottery } from './useLottery';
+import { usePicker } from './usePicker';
 
-describe('useLottery 生产路径（TC-011 / TC-012）', () => {
+describe('usePicker 生产路径（TC-011 / TC-012）', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
@@ -14,7 +14,7 @@ describe('useLottery 生产路径（TC-011 / TC-012）', () => {
   });
 
   it('生成、保存、删除与清空历史', () => {
-    const { result } = renderHook(() => useLottery());
+    const { result } = renderHook(() => usePicker());
 
     act(() => {
       expect(result.current.generate().ok).toBe(true);
@@ -46,7 +46,7 @@ describe('useLottery 生产路径（TC-011 / TC-012）', () => {
   });
 
   it('胆拖超过 200 注时保存会被截断并返回警告（P1 回归）', () => {
-    const { result } = renderHook(() => useLottery());
+    const { result } = renderHook(() => usePicker());
 
     act(() => result.current.setMode('banker'));
     // 第 1 个号码点击两次成为胆码
@@ -75,7 +75,7 @@ describe('useLottery 生产路径（TC-011 / TC-012）', () => {
   });
 
   it('存储写失败时保存返回错误且不假装成功', () => {
-    const { result } = renderHook(() => useLottery());
+    const { result } = renderHook(() => usePicker());
     act(() => {
       expect(result.current.generate().ok).toBe(true);
     });
@@ -93,7 +93,7 @@ describe('useLottery 生产路径（TC-011 / TC-012）', () => {
   });
 
   it('复制成功与失败路径', async () => {
-    const { result } = renderHook(() => useLottery());
+    const { result } = renderHook(() => usePicker());
     act(() => {
       expect(result.current.generate().ok).toBe(true);
     });

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeTicket } from './analysis';
-import { DLT_CONFIG, SSQ_CONFIG } from './config';
+import { FRONTBACK_CONFIG, REDBLUE_CONFIG } from './config';
 
 describe('analyzeTicket（TC-010）', () => {
-  it('双色球已知号码的分布指标正确', () => {
-    const result = analyzeTicket(SSQ_CONFIG, {
+  it('红蓝玩法已知号码的分布指标正确', () => {
+    const result = analyzeTicket(REDBLUE_CONFIG, {
       red: [1, 6, 12, 19, 26, 33],
       blue: [8],
     });
@@ -14,8 +14,8 @@ describe('analyzeTicket（TC-010）', () => {
     expect(result.zones).toBe('2:2:2');
   });
 
-  it('大乐透只分析主区（前区）', () => {
-    const result = analyzeTicket(DLT_CONFIG, {
+  it('前后玩法只分析主区（前区）', () => {
+    const result = analyzeTicket(FRONTBACK_CONFIG, {
       front: [1, 10, 18, 27, 35],
       back: [3, 9],
     });
@@ -27,7 +27,7 @@ describe('analyzeTicket（TC-010）', () => {
   });
 
   it('空号码返回零值而不是抛错', () => {
-    expect(analyzeTicket(SSQ_CONFIG, {})).toEqual({
+    expect(analyzeTicket(REDBLUE_CONFIG, {})).toEqual({
       oddEven: '0:0',
       bigSmall: '0:0',
       sum: 0,
