@@ -3,13 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Lucky Picks lottery number advisor frontend",
+  "description": "Lucky Picks number picking advisor frontend",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "check:terms": "node scripts/check-terminology.mjs",
     "test": "vitest run"
   },
   "dependencies": {

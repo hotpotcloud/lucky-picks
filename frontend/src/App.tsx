@@ -12,17 +12,17 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { GAME_CONFIGS } from './features/lottery/config';
-import { useLottery } from './features/lottery/hooks/useLottery';
-import { MODE_LABELS } from './features/lottery/labels';
-import { formatAmount, formatTicketText, formatTicketsText } from './features/lottery/format';
-import type { HistoryRecord, SelectionMode } from './features/lottery/types';
-import GameSwitcher from './features/lottery/components/GameSwitcher';
-import QuickPickPanel from './features/lottery/components/QuickPickPanel';
-import MultiplePanel from './features/lottery/components/MultiplePanel';
-import BankerPanel from './features/lottery/components/BankerPanel';
-import TicketList from './features/lottery/components/TicketList';
-import HistoryList from './features/lottery/components/HistoryList';
+import { GAME_CONFIGS } from './features/picker/config';
+import { usePicker } from './features/picker/hooks/usePicker';
+import { MODE_LABELS } from './features/picker/labels';
+import { formatAmount, formatTicketText, formatTicketsText } from './features/picker/format';
+import type { HistoryRecord, SelectionMode } from './features/picker/types';
+import GameSwitcher from './features/picker/components/GameSwitcher';
+import QuickPickPanel from './features/picker/components/QuickPickPanel';
+import MultiplePanel from './features/picker/components/MultiplePanel';
+import BankerPanel from './features/picker/components/BankerPanel';
+import TicketList from './features/picker/components/TicketList';
+import HistoryList from './features/picker/components/HistoryList';
 
 /** 选号模式切换项。 */
 const MODE_OPTIONS: { label: string; value: SelectionMode }[] = [
@@ -33,17 +33,17 @@ const MODE_OPTIONS: { label: string; value: SelectionMode }[] = [
 
 /**
  * 应用根组件：只负责布局、消息提示与面板组合，
- * 所有选号状态与校验逻辑集中在 useLottery。
+ * 所有选号状态与校验逻辑集中在 usePicker。
  */
 const App = () => {
-  const lottery = useLottery();
+  const picker = usePicker();
   const { message } = AntdApp.useApp();
 
   /** 生成号码并提示结果。 */
   const handleGenerate = () => {
-    const result = lottery.generate();
+    const result = picker.generate();
     if (result.ok) {
-      message.success(`已生成 ${lottery.activeInfo.combinations} 注号码`);
+      message.success(`已生成 ${picker.activeInfo.combinations} 注号码`);
     } else {
       message.error(result.error);
     }
@@ -51,7 +51,7 @@ const App = () => {
 
   /** 复制当前结果。 */
   const handleCopy = async () => {
-    const result = await lottery.copyResult();
+    const result = await picker.copyResult();
     if (result.ok) {
       message.success('号码已复制到剪贴板');
     } else {
@@ -61,7 +61,7 @@ const App = () => {
 
   /** 保存当前结果到本地历史；被截断时用警告提示而不是静默成功。 */
   const handleSave = () => {
-    const result = lottery.saveResult();
+    const result = picker.saveResult();
     if (!result.ok) {
       message.error(result.error);
       return;
@@ -94,40 +94,40 @@ const App = () => {
 
   /** 按当前模式渲染参数面板。 */
   const renderPanel = () => {
-    if (lottery.mode === 'multiple') {
+    if (picker.mode === 'multiple') {
       return (
         <MultiplePanel
-          game={lottery.game}
-          selections={lottery.selections}
-          onToggle={lottery.toggleSelection}
-          info={lottery.multipleInfo}
+          game={picker.game}
+          selections={picker.selections}
+          onToggle={picker.toggleSelection}
+          info={picker.multipleInfo}
         />
       );
     }
-    if (lottery.mode === 'banker') {
+    if (picker.mode === 'banker') {
       return (
         <BankerPanel
-          game={lottery.game}
-          banker={lottery.bankerNumbers}
-          drag={lottery.dragNumbers}
-          selections={lottery.selections}
-          onCycle={lottery.cycleBankerNumber}
-          onToggle={lottery.toggleSelection}
-          info={lottery.bankerInfo}
+          game={picker.game}
+          banker={picker.bankerNumbers}
+          drag={picker.dragNumbers}
+          selections={picker.selections}
+          onCycle={picker.cycleBankerNumber}
+          onToggle={picker.toggleSelection}
+          info={picker.bankerInfo}
         />
       );
     }
     return (
       <QuickPickPanel
-        count={lottery.quickCount}
-        strategy={lottery.strategy}
-        onCountChange={lottery.setQuickCount}
-        onStrategyChange={lottery.setStrategy}
+        count={picker.quickCount}
+        strategy={picker.strategy}
+        onCountChange={picker.setQuickCount}
+        onStrategyChange={picker.setStrategy}
       />
     );
   };
 
-  const generateDisabled = !lottery.activeInfo.valid;
+  const generateDisabled = !picker.activeInfo.valid;
 
   return (
     <div className="app-shell">
@@ -136,13 +136,13 @@ const App = () => {
           Lucky Picks · 幸运选号
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          为双色球、大乐透生成号码建议，支持机选、复式、胆拖与号码分布分析。
+          为红蓝玩法、前后玩法生成号码建议，支持机选、复式、胆拖与号码分布分析。
         </Typography.Paragraph>
         <Alert
           type="warning"
           showIcon
           message="免责声明"
-          description="彩票开奖是独立随机事件，本工具的选号建议仅供娱乐参考，不构成投注建议，也不承诺中奖。请理性购彩。"
+          description="开奖结果为独立随机事件，本工具的选号建议仅供娱乐参考，不构成任何投注建议，也不承诺中奖。请理性参与。"
         />
       </header>
 
@@ -150,16 +150,16 @@ const App = () => {
         <Col xs={24} lg={10}>
           <Card title="选号设置">
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-              <GameSwitcher value={lottery.gameId} onChange={lottery.selectGame} />
+              <GameSwitcher value={picker.gameId} onChange={picker.selectGame} />
               <Segmented
                 block
                 options={MODE_OPTIONS}
-                value={lottery.mode}
-                onChange={(next) => lottery.setMode(next as SelectionMode)}
+                value={picker.mode}
+                onChange={(next) => picker.setMode(next as SelectionMode)}
               />
               {renderPanel()}
-              {lottery.mode === 'quick' && !lottery.activeInfo.valid && (
-                <Alert type="warning" showIcon message={lottery.activeInfo.error} />
+              {picker.mode === 'quick' && !picker.activeInfo.valid && (
+                <Alert type="warning" showIcon message={picker.activeInfo.error} />
               )}
               <Button
                 type="primary"
@@ -179,13 +179,13 @@ const App = () => {
             title="生成结果"
             extra={
               <Space wrap>
-                <Button size="small" disabled={!lottery.result} onClick={handleCopy}>
+                <Button size="small" disabled={!picker.result} onClick={handleCopy}>
                   复制
                 </Button>
                 <Button
                   size="small"
                   type="primary"
-                  disabled={!lottery.result || !lottery.historyAvailable}
+                  disabled={!picker.result || !picker.historyAvailable}
                   onClick={handleSave}
                 >
                   保存到历史
@@ -193,19 +193,19 @@ const App = () => {
               </Space>
             }
           >
-            {lottery.result ? (
+            {picker.result ? (
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <Space wrap>
-                  <Tag color="blue">{lottery.game.name}</Tag>
-                  <Tag>{MODE_LABELS[lottery.result.mode]}</Tag>
-                  <Tag color="gold">共 {lottery.result.combinations} 注</Tag>
-                  <Tag color="gold">参考金额 {formatAmount(lottery.result.amount)}</Tag>
+                  <Tag color="blue">{picker.game.name}</Tag>
+                  <Tag>{MODE_LABELS[picker.result.mode]}</Tag>
+                  <Tag color="gold">共 {picker.result.combinations} 注</Tag>
+                  <Tag color="gold">参考金额 {formatAmount(picker.result.amount)}</Tag>
                 </Space>
                 <TicketList
-                  game={lottery.game}
-                  tickets={lottery.result.tickets}
-                  combinations={lottery.result.combinations}
-                  analyze={lottery.result.mode !== 'multiple'}
+                  game={picker.game}
+                  tickets={picker.result.tickets}
+                  combinations={picker.result.combinations}
+                  analyze={picker.result.mode !== 'multiple'}
                 />
               </Space>
             ) : (
@@ -222,7 +222,7 @@ const App = () => {
           <Popconfirm
             title="清空全部历史记录？"
             onConfirm={() => {
-              const result = lottery.clearAllHistory();
+              const result = picker.clearAllHistory();
               if (result.ok) {
                 message.success('历史记录已清空');
               } else {
@@ -231,16 +231,16 @@ const App = () => {
             }}
             okText="清空"
             cancelText="取消"
-            disabled={lottery.history.length === 0}
+            disabled={picker.history.length === 0}
           >
-            <Button size="small" danger disabled={lottery.history.length === 0}>
+            <Button size="small" danger disabled={picker.history.length === 0}>
               清空历史
             </Button>
           </Popconfirm>
         }
       >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          {!lottery.historyAvailable && (
+          {!picker.historyAvailable && (
             <Alert
               type="warning"
               showIcon
@@ -252,10 +252,10 @@ const App = () => {
             历史记录仅保存在当前浏览器，不会上传到任何服务器。
           </Typography.Text>
           <HistoryList
-            records={lottery.history}
+            records={picker.history}
             onCopy={handleCopyRecord}
             onDelete={(id) => {
-              const result = lottery.deleteHistory(id);
+              const result = picker.deleteHistory(id);
               if (result.ok) {
                 message.success('记录已删除');
               } else {
@@ -268,7 +268,7 @@ const App = () => {
 
       <footer className="app-footer">
         <Typography.Text type="secondary">
-          Lucky Picks 仅提供随机与均衡选号建议，不销售彩票、不代购、不提供任何中奖承诺。
+          Lucky Picks 仅提供随机与均衡选号建议，不销售、不代购、不提供任何中奖承诺。
         </Typography.Text>
       </footer>
     </div>

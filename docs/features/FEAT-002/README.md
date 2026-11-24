@@ -1,0 +1,64 @@
+# FEAT-002 设计索引
+
+- 状态：**设计完成，待需求提出方评审**（尚未实现代码）
+- 级别：重量（新增后端、外部数据、算法、全玩法）
+- 设计日期：2026-11-23
+
+## 文档
+
+| 文档 | 内容 |
+|---|---|
+| `task.md` | 需求提出方原始输入（保留不改写） |
+| `requirement.md` | 一页/完整需求、官方规则、范围、REQ、核心 TC、假设与待确认项 |
+| `research-algorithms.md` | 数学方法调研：频率/遗漏/贝叶斯/马尔可夫/ML/遗传/覆盖设计/回测，及方案取舍 |
+| `research-open-source.md` | 14 个开源项目对比、能力矩阵、可借鉴点 |
+| `design-backend.md` | FastAPI 架构、数据管道、规则引擎、统计、推荐、回测、API、部署、测试、风险 |
+| `design-frontend.md` | 页面/Tab、组件、状态、API 客户端、全玩法交互、离线降级、测试 |
+| `test-cases.md` | TC-101–TC-123（18 条核心） |
+| `tasks.md` | 分端任务拆分（S01、B01–B07、F01–F06、D01） |
+| `../../contracts/openapi.yaml` | 机器可读契约（9 个路径、36 个 schema） |
+| `../FEAT-003/backlog.md` | 从开源调研沉淀的迭代需求池 |
+
+## 关键决策
+
+1. **数据**：GitHub Actions 定时抓取官方数据源 A/B 接口 → 规范化 JSON → 后端启动导入 SQLite；失败保留旧数据。
+2. **后端**：Python 3.11 + FastAPI + SQLModel/SQLite + httpx；无账号、无用户数据。
+3. **算法**：统计画像 + 约束加权采样 + 覆盖设计 + walk-forward 回测；不承诺预测，不训练深度模型（留给 FEAT-003）。
+4. **全玩法**：单式/复式/胆拖（含分区）、追加、倍数、官方金额上限；服务端为权威。
+5. **前端**：Tabs + hash，不新增路由库；图表/类型生成依赖待批准。
+6. **部署**：前端 GitHub Pages；后端 Docker + Render 免费实例（需账号）；冷启动降级。
+
+## 术语规范化（已执行）
+
+按需求提出方要求，全仓库已改为中性术语并加装自动校验：
+
+- 玩法 A = `红蓝玩法` / `Red-Blue`（标识符 `redblue`）；玩法 B = `前后玩法` / `Front-Back`（标识符 `frontback`）。
+- 目录与标识符：玩法模块目录改为 `features/picker`，页面状态 Hook 改为 `usePicker`，业务异常改为 `SelectionError`，FEAT-001 文档目录改为 `FEAT-001-number-advisor`。
+- 界面文案、README、契约描述、仓库说明同步改写。
+- 自动校验：`cd frontend && pnpm check:terms`（CI 同款门禁，失败阻断）；规则与例外见 `frontend/scripts/check-terminology.mjs`。
+- 例外：第三方仓库名、官方域名、上游接口字段名按原样引用。
+
+## 待需求提出方确认
+
+- [ ] FEAT-002 起是否改为**分端开发**（后端/前端独立任务卡与 MR），并更新 AGENTS.md
+- [ ] 后端托管平台（Render / Fly.io / 其他）与账号/Token
+- [ ] 新增依赖批准：`openapi-typescript`、图表库（`@ant-design/charts` 或 SVG 自研）、后端 FastAPI 栈
+- [ ] 数据抓取合规确认（仅官方接口、每日低频、标注来源）
+- [ ] 推荐默认输出（5 注单式；复式/胆拖输出方案）是否符合预期
+- [ ] 高级 ML 是否确认放到 FEAT-003
+- [ ] 原始输入中的 `247` 含义待澄清
+- [ ] 官方来源域名与第三方仓库名是否也允许出现在公开仓库中（当前按「外部专有名词例外」保留）
+
+## 评审入口
+
+1. 先读 `requirement.md` 第 4、8、9 节，确认规则与假设。
+2. 再读 `research-algorithms.md` 第 4、5 节，确认算法定位与取舍。
+3. 检查 `design-backend.md` 的规则引擎/推荐/回测/部署，和 `design-frontend.md` 的页面规格。
+4. 检查 `openapi.yaml` 是否覆盖所需接口。
+5. 确认后进入任务拆分评审与实现。
+
+## 明确不做
+
+- 不做投注、代购、支付；不采集个人信息。
+- 不承诺中奖；不把任何模型包装成「预测准确」。
+- 不接入非官方数据源；不在 FEAT-002 训练深度模型。

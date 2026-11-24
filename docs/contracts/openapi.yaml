@@ -1,0 +1,794 @@
+openapi: 3.0.3
+info:
+  title: Lucky Picks API
+  version: 2.0.0
+  description: |
+    FEAT-002 后端契约：开奖数据、统计、全玩法校验、推荐与回测。
+    开奖结果为独立随机事件，所有推荐仅供参考，不构成投注建议。
+
+    统一响应：`{ code, message, data, requestId }`，`code = 0` 表示成功。
+servers:
+  - url: http://localhost:8000
+    description: 本地开发
+  - url: https://lucky-picks-api.onrender.com
+    description: 生产（占位，部署后替换）
+tags:
+  - name: meta
+  - name: games
+  - name: draws
+  - name: stats
+  - name: bets
+  - name: recommendations
+  - name: backtest
+
+paths:
+  /health:
+    get:
+      tags: [meta]
+      summary: 健康检查
+      operationId: getHealth
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          description: 数据未就绪
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /api/v1/meta:
+    get:
+      tags: [meta]
+      summary: 数据版本与来源
+      operationId: getMeta
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaEnvelope'
+
+  /api/v1/games:
+    get:
+      tags: [games]
+      summary: 玩法与玩法规则
+      operationId: listGames
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GamesEnvelope'
+
+  /api/v1/draws/{game}:
+    get:
+      tags: [draws]
+      summary: 历史开奖分页
+      operationId: listDraws
+      parameters:
+        - $ref: '#/components/parameters/GamePath'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: issue
+          in: query
+          description: 按期号精确筛选
+          schema: { type: string }
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawsEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/draws/{game}/latest:
+    get:
+      tags: [draws]
+      summary: 最新一期开奖
+      operationId: getLatestDraw
+      parameters:
+        - $ref: '#/components/parameters/GamePath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatestDrawEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/stats/{game}:
+    get:
+      tags: [stats]
+      summary: 号码与形态统计
+      operationId: getStats
+      parameters:
+        - $ref: '#/components/parameters/GamePath'
+        - name: window
+          in: query
+          description: 统计窗口（最近 N 期）
+          schema: { type: integer, minimum: 10, maximum: 300, default: 100 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/bets/validate:
+    post:
+      tags: [bets]
+      summary: 校验投注方案并计算注数与金额
+      operationId: validateBet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BetSelection'
+            examples:
+              ssqBanker:
+                summary: 红蓝玩法 2 胆 6 拖 1 蓝
+                value:
+                  game: ssq
+                  mode: banker
+                  multiplier: 1
+                  additional: false
+                  areas:
+                    - key: red
+                      numbers: [1, 2, 3, 4, 5, 6, 7, 8]
+                      banker: [1, 2]
+                    - key: blue
+                      numbers: [8]
+                      banker: []
+      responses:
+        '200':
+          description: 校验结果；业务校验失败也返回 code=0，通过 data.valid=false 与 data.errors 表达；仅请求格式错误返回 422
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/recommendations:
+    post:
+      tags: [recommendations]
+      summary: 生成推荐号码
+      operationId: createRecommendation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DataUnavailable'
+
+  /api/v1/backtest/{game}:
+    get:
+      tags: [backtest]
+      summary: 策略 vs 随机基线回测
+      operationId: runBacktest
+      parameters:
+        - $ref: '#/components/parameters/GamePath'
+        - name: strategy
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Strategy'
+        - name: window
+          in: query
+          schema: { type: integer, minimum: 10, maximum: 300, default: 100 }
+        - name: draws
+          in: query
+          description: 回测期数
+          schema: { type: integer, minimum: 20, maximum: 300, default: 100 }
+        - name: tickets
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10, default: 5 }
+        - name: additional
+          in: query
+          description: 前后玩法是否计入追加（仅 basic+additional 都校验上限）
+          schema: { type: boolean, default: false }
+        - name: seed
+          in: query
+          schema: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BacktestEnvelope'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DataUnavailable'
+
+components:
+  parameters:
+    GamePath:
+      name: game
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/GameId'
+
+  responses:
+    NotFound:
+      description: 玩法或数据不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ValidationError:
+      description: 请求格式不符合 schema
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    RateLimited:
+      description: 请求过于频繁
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    DataUnavailable:
+      description: 数据不可用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+  schemas:
+    GameId:
+      type: string
+      enum: [ssq, dlt]
+      description: ssq=红蓝玩法，dlt=前后玩法
+
+    Mode:
+      type: string
+      enum: [single, multiple, banker]
+      description: 单式 / 复式 / 胆拖
+
+    Strategy:
+      type: string
+      enum: [balanced, hot, cold, omission, bayesian, coverage]
+
+    AreaKey:
+      type: string
+      enum: [red, blue, front, back]
+
+    ErrorCode:
+      type: string
+      enum:
+        - GAME_NOT_FOUND
+        - INVALID_SELECTION
+        - INVALID_MODE
+        - AMOUNT_LIMIT
+        - COMBINATION_TOO_LARGE
+        - DATA_UNAVAILABLE
+        - RATE_LIMITED
+        - INTERNAL_ERROR
+
+    Health:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        version:
+          type: string
+        dataUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        message:
+          type: string
+
+    DataMeta:
+      type: object
+      required: [version, updatedAt, source]
+      properties:
+        version:
+          type: string
+          description: 数据版本（抓取时间或内容 hash）
+        updatedAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+          description: 官方来源说明
+        drawCount:
+          type: integer
+          description: 该玩法可用期数
+
+    MetaEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: object
+              required: [ssq, dlt]
+              properties:
+                ssq: { $ref: '#/components/schemas/DataMeta' }
+                dlt: { $ref: '#/components/schemas/DataMeta' }
+
+    AreaRule:
+      type: object
+      required: [key, label, min, max, baseCount, bankerMin, bankerMax, color]
+      properties:
+        key: { $ref: '#/components/schemas/AreaKey' }
+        label: { type: string, example: 红球 }
+        min: { type: integer, example: 1 }
+        max: { type: integer, example: 33 }
+        baseCount: { type: integer, example: 6 }
+        bankerMin: { type: integer, example: 1 }
+        bankerMax: { type: integer, example: 5 }
+        color: { type: string, enum: [red, blue] }
+
+    Game:
+      type: object
+      required: [id, name, description, price, additionalPrice, multiplierMin, multiplierMax, baseAmountLimit, totalAmountLimit, areas]
+      properties:
+        id: { $ref: '#/components/schemas/GameId' }
+        name: { type: string, example: 红蓝玩法 }
+        description: { type: string }
+        price: { type: number, example: 2 }
+        additionalPrice: { type: number, example: 0 }
+        multiplierMin: { type: integer, example: 1 }
+        multiplierMax: { type: integer, example: 99 }
+        baseAmountLimit: { type: integer, example: 20000 }
+        totalAmountLimit: { type: integer, example: 20000 }
+        areas:
+          type: array
+          items: { $ref: '#/components/schemas/AreaRule' }
+
+    GamesEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/Game' }
+
+    DrawNumbers:
+      type: object
+      properties:
+        red:
+          type: array
+          items: { type: integer }
+        blue:
+          type: array
+          items: { type: integer }
+        front:
+          type: array
+          items: { type: integer }
+        back:
+          type: array
+          items: { type: integer }
+
+    Draw:
+      type: object
+      required: [game, issue, date, numbers]
+      properties:
+        game: { $ref: '#/components/schemas/GameId' }
+        issue: { type: string, example: '2026134' }
+        date: { type: string, format: date }
+        numbers: { $ref: '#/components/schemas/DrawNumbers' }
+        sales:
+          type: integer
+          nullable: true
+        pool:
+          type: integer
+          nullable: true
+
+    DrawsEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: object
+              required: [items, total, limit, offset, meta]
+              properties:
+                items:
+                  type: array
+                  items: { $ref: '#/components/schemas/Draw' }
+                total: { type: integer }
+                limit: { type: integer }
+                offset: { type: integer }
+                meta: { $ref: '#/components/schemas/DataMeta' }
+
+    LatestDrawEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: object
+              required: [draw, meta]
+              properties:
+                draw: { $ref: '#/components/schemas/Draw' }
+                meta: { $ref: '#/components/schemas/DataMeta' }
+
+    NumberStat:
+      type: object
+      required: [number, count, frequency, expectedCount, zScore, currentOmission, maxOmission, avgOmission, expectedGap, omissionRatio, posteriorMean]
+      properties:
+        number: { type: integer }
+        count: { type: integer }
+        frequency: { type: number }
+        expectedCount: { type: number }
+        zScore: { type: number }
+        currentOmission: { type: integer }
+        maxOmission: { type: integer }
+        avgOmission: { type: number }
+        expectedGap: { type: number }
+        omissionRatio: { type: number }
+        posteriorMean: { type: number }
+        posteriorLower: { type: number }
+        posteriorUpper: { type: number }
+
+    DrawMetrics:
+      type: object
+      required: [issue, sum, span, oddEven, bigSmall, zones, acValue, consecutive]
+      properties:
+        issue: { type: string }
+        sum: { type: integer }
+        span: { type: integer }
+        oddEven: { type: string, example: '3:3' }
+        bigSmall: { type: string, example: '3:3' }
+        zones: { type: string, example: '2:2:2' }
+        acValue: { type: integer }
+        consecutive: { type: integer }
+
+    Uniformity:
+      type: object
+      required: [chiSquare, degreesOfFreedom, pValue, conclusion]
+      properties:
+        chiSquare: { type: number }
+        degreesOfFreedom: { type: integer }
+        pValue: { type: number }
+        conclusion: { type: string }
+
+    StatsData:
+      type: object
+      required: [game, window, dataVersion, numbers, drawMetrics, uniformity]
+      properties:
+        game: { $ref: '#/components/schemas/GameId' }
+        window: { type: integer }
+        dataVersion: { type: string }
+        numbers:
+          type: array
+          items: { $ref: '#/components/schemas/NumberStat' }
+        drawMetrics:
+          type: array
+          items: { $ref: '#/components/schemas/DrawMetrics' }
+        aggregate:
+          type: object
+          additionalProperties: true
+        uniformity: { $ref: '#/components/schemas/Uniformity' }
+
+    StatsEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/StatsData' }
+
+    AreaSelection:
+      type: object
+      required: [key, numbers]
+      properties:
+        key: { $ref: '#/components/schemas/AreaKey' }
+        numbers:
+          type: array
+          items: { type: integer }
+        banker:
+          type: array
+          items: { type: integer }
+          description: 胆码；非胆拖模式必须为空
+
+    BetSelection:
+      type: object
+      required: [game, mode, areas]
+      properties:
+        game: { $ref: '#/components/schemas/GameId' }
+        mode: { $ref: '#/components/schemas/Mode' }
+        multiplier:
+          type: integer
+          minimum: 1
+          maximum: 99
+          default: 1
+        additional:
+          type: boolean
+          default: false
+          description: 仅前后玩法有效
+        areas:
+          type: array
+          items: { $ref: '#/components/schemas/AreaSelection' }
+
+    ValidationResult:
+      type: object
+      required: [valid, mode, combinations, baseAmount, additionalAmount, totalAmount, errors]
+      properties:
+        valid: { type: boolean }
+        mode: { $ref: '#/components/schemas/Mode' }
+        combinations: { type: integer }
+        baseAmount: { type: number }
+        additionalAmount: { type: number }
+        totalAmount: { type: number }
+        normalizedAreas:
+          type: array
+          items: { $ref: '#/components/schemas/AreaSelection' }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { $ref: '#/components/schemas/ErrorCode' }
+              area:
+                type: string
+                enum: [red, blue, front, back]
+                nullable: true
+              message: { type: string }
+
+    ValidationEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/ValidationResult' }
+
+    Constraints:
+      type: object
+      properties:
+        oddEven:
+          type: array
+          items: { type: integer }
+          minItems: 2
+          maxItems: 2
+          description: [奇数下限, 奇数上限]
+        bigSmall:
+          type: array
+          items: { type: integer }
+          minItems: 2
+          maxItems: 2
+        sumRange:
+          type: array
+          items: { type: integer }
+          minItems: 2
+          maxItems: 2
+        spanRange:
+          type: array
+          items: { type: integer }
+          minItems: 2
+          maxItems: 2
+        maxConsecutive:
+          type: integer
+          minimum: 0
+          maximum: 6
+        zones:
+          type: array
+          items: { type: integer }
+          minItems: 2
+          maxItems: 2
+          description: [单区最少个数, 单区最多个数]
+
+    RecommendationRequest:
+      type: object
+      required: [game, mode, strategy]
+      properties:
+        game: { $ref: '#/components/schemas/GameId' }
+        mode: { $ref: '#/components/schemas/Mode' }
+        strategy: { $ref: '#/components/schemas/Strategy' }
+        window:
+          type: integer
+          minimum: 10
+          maximum: 300
+          default: 100
+        count:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+          description: 单式模式的注数；复式/胆拖模式固定输出 1 个方案，此值被忽略
+        multiplier:
+          type: integer
+          minimum: 1
+          maximum: 99
+          default: 1
+        additional:
+          type: boolean
+          default: false
+        seed:
+          type: integer
+          minimum: 0
+          description: 省略时服务端生成并返回
+        constraints:
+          $ref: '#/components/schemas/Constraints'
+
+    NumberContribution:
+      type: object
+      required: [number, feature, weight, value]
+      properties:
+        number: { type: integer }
+        feature:
+          type: string
+          enum: [freqZ, omissionRatio, recentDelta, posterior, balancePrior]
+        weight: { type: number }
+        value: { type: number }
+
+    RecommendedBet:
+      type: object
+      required: [mode, areas, combinations, baseAmount, additionalAmount, totalAmount, explanation]
+      properties:
+        mode: { $ref: '#/components/schemas/Mode' }
+        areas:
+          type: array
+          items: { $ref: '#/components/schemas/AreaSelection' }
+        combinations: { type: integer }
+        baseAmount: { type: number }
+        additionalAmount: { type: number }
+        totalAmount: { type: number }
+        explanation:
+          type: array
+          items: { $ref: '#/components/schemas/NumberContribution' }
+
+    RecommendationData:
+      type: object
+      required: [game, strategy, mode, window, seed, dataVersion, bets, disclaimer]
+      properties:
+        game: { $ref: '#/components/schemas/GameId' }
+        strategy: { $ref: '#/components/schemas/Strategy' }
+        mode: { $ref: '#/components/schemas/Mode' }
+        window: { type: integer }
+        seed: { type: integer }
+        dataVersion: { type: string }
+        bets:
+          type: array
+          description: 单式模式每个元素是一注（数量=count）；复式/胆拖模式只有一个元素（号码池/胆拖方案）
+          items: { $ref: '#/components/schemas/RecommendedBet' }
+        disclaimer: { type: string }
+
+    RecommendationEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/RecommendationData' }
+
+    BacktestSummary:
+      type: object
+      required: [tickets, invested, returned, roi, hitRate, prizeCounts]
+      properties:
+        tickets: { type: integer }
+        invested: { type: number }
+        returned: { type: number }
+        roi: { type: number }
+        hitRate: { type: number }
+        prizeCounts:
+          type: object
+          additionalProperties: { type: integer }
+          description: 奖级 -> 命中次数
+
+    BacktestPoint:
+      type: object
+      required: [issue, invested, returned, cumulativeRoi]
+      properties:
+        issue: { type: string }
+        invested: { type: number }
+        returned: { type: number }
+        cumulativeRoi: { type: number }
+
+    BacktestData:
+      type: object
+      required: [game, strategy, window, draws, sampleEnough, strategySummary, baseline, confidence, series, methodology]
+      properties:
+        game: { $ref: '#/components/schemas/GameId' }
+        strategy: { $ref: '#/components/schemas/Strategy' }
+        window: { type: integer }
+        draws: { type: integer }
+        sampleEnough: { type: boolean }
+        strategySummary: { $ref: '#/components/schemas/BacktestSummary' }
+        baseline: { $ref: '#/components/schemas/BacktestSummary' }
+        confidence:
+          type: object
+          required: [lower, upper]
+          properties:
+            lower: { type: number }
+            upper: { type: number }
+            level: { type: number, example: 0.95 }
+        series:
+          type: array
+          items: { $ref: '#/components/schemas/BacktestPoint' }
+        prizeEstimated:
+          type: boolean
+          description: 浮动奖是否使用估算值
+        methodology: { type: string }
+
+    BacktestEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/BacktestData' }
+
+    EnvelopeBase:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code:
+          type: integer
+          description: 0 成功，非 0 业务错误
+        message: { type: string }
+        requestId: { type: string }
+
+    ErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          required: [code, message, requestId]
+          properties:
+            code:
+              type: integer
+              example: 40001
+            message:
+              type: string
+              example: 号码超出范围
+            errorCode:
+              $ref: '#/components/schemas/ErrorCode'
+            data:
+              type: object
+              nullable: true

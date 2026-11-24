@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { HISTORY_STORAGE_KEY } from '../features/lottery/constants';
-import type { HistoryRecord } from '../features/lottery/types';
+import { HISTORY_STORAGE_KEY } from '../features/picker/constants';
+import type { HistoryRecord } from '../features/picker/types';
 import { isHistoryAvailable, loadHistory, saveHistory } from './storage';
 
 /** 构造一条合法的历史记录用于测试。 */
 const createRecord = (id: string, createdAt: number): HistoryRecord => ({
   id,
-  gameId: 'ssq',
-  gameName: '双色球',
+  gameId: 'redblue',
+  gameName: '红蓝玩法',
   mode: 'quick',
   tickets: [{ red: [1, 2, 3, 4, 5, 6], blue: [7] }],
   combinationCount: 1,

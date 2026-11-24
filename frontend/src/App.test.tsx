@@ -48,7 +48,7 @@ describe('App 交互（TC-013 / TC-014）', () => {
     expect(screen.getAllByText('参考金额 14 元').length).toBeGreaterThan(0);
   });
 
-  it('切换彩种后清空已选号码并回到机选（TC-013）', async () => {
+  it('切换玩法后清空已选号码并回到机选（TC-013）', async () => {
     renderApp();
 
     fireEvent.click(screen.getByRole('radio', { name: '复式' }));
@@ -56,9 +56,9 @@ describe('App 交互（TC-013 / TC-014）', () => {
     fireEvent.click(within(redGrid).getAllByRole('button')[0]);
     expect(screen.getByText(/红球（已选 1/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('radio', { name: '大乐透' }));
+    fireEvent.click(screen.getByRole('radio', { name: '前后玩法' }));
 
-    // 切换后回到机选模式，展示大乐透规则
+    // 切换后回到机选模式，展示前后玩法规则
     expect(screen.getByText('机选注数')).toBeInTheDocument();
     expect(screen.getByText(/前区 1–35 选 5/)).toBeInTheDocument();
 
