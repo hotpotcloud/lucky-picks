@@ -71,16 +71,19 @@ def create_recommendation(
     draws = database.all_draws(payload.game)
     if len(draws) < payload.window:
         raise InvalidSelection("历史数据不足，无法按该窗口生成推荐")
-    result = recommend(
-        draws,
-        game,
-        payload.mode,
-        payload.strategy,
-        payload.window,
-        payload.count,
-        payload.seed,
-        multiplier=payload.multiplier,
-        additional=payload.additional,
-        constraints=payload.constraints,
-    )
+    try:
+        result = recommend(
+            draws,
+            game,
+            payload.mode,
+            payload.strategy,
+            payload.window,
+            payload.count,
+            payload.seed,
+            multiplier=payload.multiplier,
+            additional=payload.additional,
+            constraints=payload.constraints,
+        )
+    except ValueError as error:
+        raise InvalidSelection(str(error)) from error
     return ok_response(result, request)

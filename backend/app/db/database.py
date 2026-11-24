@@ -11,15 +11,21 @@ import json
 import os
 import secrets
 import sqlite3
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import pymysql
 import pymysql.cursors
+from loguru import logger
 
 # PBKDF2 迭代次数（兼顾安全与启动耗时）。
 PBKDF2_ITERATIONS = 120_000
+
+
+class InvalidInvitationError(ValueError):
+    """邀请码无效或已使用。"""
 
 
 @dataclass
@@ -140,6 +146,7 @@ class _ConnectionWrapper:
         """
         self.raw = raw
         self.dialect = dialect
+        self.lock = threading.RLock()
 
     def _sql(self, sql: str) -> str:
         """按驱动转换占位符。
@@ -162,9 +169,10 @@ class _ConnectionWrapper:
         Returns:
             游标对象。
         """
-        cursor = self.raw.cursor()
-        cursor.execute(self._sql(sql), params)
-        return cursor
+        with self.lock:
+            cursor = self.raw.cursor()
+            cursor.execute(self._sql(sql), params)
+            return _CursorWrapper(cursor, self.lock)
 
     def executemany(self, sql: str, params: Any) -> Any:
         """批量执行 SQL。
@@ -176,9 +184,10 @@ class _ConnectionWrapper:
         Returns:
             游标对象。
         """
-        cursor = self.raw.cursor()
-        cursor.executemany(self._sql(sql), params)
-        return cursor
+        with self.lock:
+            cursor = self.raw.cursor()
+            cursor.executemany(self._sql(sql), params)
+            return _CursorWrapper(cursor, self.lock)
 
     def executescript(self, script: str) -> None:
         """执行多段建表语句。
@@ -186,22 +195,25 @@ class _ConnectionWrapper:
         Args:
             script: 分号分隔的 SQL 脚本。
         """
-        if self.dialect == "sqlite":
-            self.raw.executescript(script)
-            return
-        cursor = self.raw.cursor()
-        for statement in script.split(";"):
-            text = statement.strip()
-            if text:
-                cursor.execute(text)
+        with self.lock:
+            if self.dialect == "sqlite":
+                self.raw.executescript(script)
+                return
+            cursor = self.raw.cursor()
+            for statement in script.split(";"):
+                text = statement.strip()
+                if text:
+                    cursor.execute(text)
 
     def commit(self) -> None:
         """提交事务。"""
-        self.raw.commit()
+        with self.lock:
+            self.raw.commit()
 
     def close(self) -> None:
         """关闭连接。"""
-        self.raw.close()
+        with self.lock:
+            self.raw.close()
 
     def __enter__(self) -> "_ConnectionWrapper":
         """进入事务上下文。
@@ -209,6 +221,7 @@ class _ConnectionWrapper:
         Returns:
             自身。
         """
+        self.lock.acquire()
         return self
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
@@ -219,10 +232,49 @@ class _ConnectionWrapper:
             exc: 异常对象。
             tb: 异常堆栈。
         """
-        if exc_type is None:
-            self.raw.commit()
-        else:
-            self.raw.rollback()
+        try:
+            if exc_type is None:
+                self.raw.commit()
+            else:
+                self.raw.rollback()
+        finally:
+            self.lock.release()
+
+
+class _CursorWrapper:
+    """统一游标封装：读取结果时复用连接锁。"""
+
+    def __init__(self, raw: Any, lock: threading.RLock) -> None:
+        """初始化游标封装。
+
+        Args:
+            raw: 原生游标。
+            lock: 数据库连接共享锁。
+        """
+        self.raw = raw
+        self.lock = lock
+
+    @property
+    def lastrowid(self) -> Any:
+        """返回最近插入记录主键。"""
+        with self.lock:
+            return self.raw.lastrowid
+
+    @property
+    def rowcount(self) -> int:
+        """返回受影响记录数。"""
+        with self.lock:
+            return int(self.raw.rowcount)
+
+    def fetchone(self) -> Any:
+        """读取单条结果。"""
+        with self.lock:
+            return self.raw.fetchone()
+
+    def fetchall(self) -> Any:
+        """读取全部结果。"""
+        with self.lock:
+            return self.raw.fetchall()
 
 
 class Database:
@@ -239,22 +291,37 @@ class Database:
         self.path = path
         self.dialect = dialect
         if dialect == "mariadb":
-            raw = pymysql.connect(
-                host=options.get("host", "127.0.0.1"),
-                port=int(options.get("port", 3306)),
-                user=options.get("user", "root"),
-                password=options.get("password", ""),
-                database=path,
-                charset=options.get("charset", "utf8mb4"),
-                cursorclass=pymysql.cursors.DictCursor,
-                autocommit=False,
-            )
+            host = options.get("host", "127.0.0.1")
+            port = int(options.get("port", 3306))
+            user = options.get("user", "root")
+            try:
+                raw = pymysql.connect(
+                    host=host,
+                    port=port,
+                    user=user,
+                    password=options.get("password", ""),
+                    database=path,
+                    charset=options.get("charset", "utf8mb4"),
+                    cursorclass=pymysql.cursors.DictCursor,
+                    autocommit=False,
+                    connect_timeout=10,
+                )
+            except pymysql.OperationalError as error:
+                # 禁止输出连接字典或密码；保留驱动堆栈及非敏感目标便于服务器定位。
+                logger.exception("数据库连接失败：host={} port={} user={} database={}", host, port, user, path)
+                raise RuntimeError(
+                    f"数据库连接失败（错误码 {error.args[0]}）：{user}@{host}:{port}/{path}。"
+                    "请确认服务进程已加载 DB_HOST、DB_PORT、DB_USER、DB_PASSWORD、DB_NAME；"
+                    "若为 1045，请核对同一实例的账号密码与认证配置。"
+                ) from error
         else:
             if path != ":memory:":
                 os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
             raw = sqlite3.connect(path, check_same_thread=False)
             raw.row_factory = sqlite3.Row
         self.connection = _ConnectionWrapper(raw, dialect)
+        # 单实例共享同一数据库连接，写锁避免多线程交叉进入同一事务。
+        self._write_lock = self.connection.lock
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -302,6 +369,14 @@ class Database:
                 cfg_key VARCHAR(64) PRIMARY KEY,
                 value TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS invitations (
+                code_hash VARCHAR(64) PRIMARY KEY,
+                created_by_user_id INTEGER NOT NULL,
+                created_at VARCHAR(64) NOT NULL,
+                used_by_user_id INTEGER,
+                used_at VARCHAR(64)
+            );
             """
         )
         self.connection.commit()
@@ -345,20 +420,90 @@ class Database:
             新用户主键。
         """
 
-        with self.connection:
-            cursor = self.connection.execute(
-                """
-                INSERT INTO users (username, password_hash, role, token_version, created_at)
-                VALUES (?, ?, ?, 1, ?)
-                """,
-                (
-                    username,
-                    hash_password(password),
-                    role,
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
+        with self._write_lock:
+            with self.connection:
+                cursor = self.connection.execute(
+                    """
+                    INSERT INTO users (username, password_hash, role, token_version, created_at)
+                    VALUES (?, ?, ?, 1, ?)
+                    """,
+                    (
+                        username,
+                        hash_password(password),
+                        role,
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
         return int(cursor.lastrowid or 0)
+
+    def create_invitation(self, created_by_user_id: int) -> str:
+        """生成并保存一次性邀请码摘要。
+
+        Args:
+            created_by_user_id: 创建邀请码的用户主键。
+
+        Returns:
+            仅在创建时返回的明文邀请码。
+        """
+        code = secrets.token_urlsafe(32)
+        code_hash = hashlib.sha256(code.encode("utf-8")).hexdigest()
+        with self._write_lock:
+            with self.connection:
+                self.connection.execute(
+                    """
+                    INSERT INTO invitations (code_hash, created_by_user_id, created_at)
+                    VALUES (?, ?, ?)
+                    """,
+                    (
+                        code_hash,
+                        created_by_user_id,
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+        return code
+
+    def register_user_with_invitation(
+        self, username: str, password: str, invite_code: str
+    ) -> int:
+        """在同一事务内创建普通用户并核销邀请码。
+
+        Args:
+            username: 登录名。
+            password: 明文密码。
+            invite_code: 邀请码明文。
+
+        Returns:
+            新用户主键。
+
+        Raises:
+            InvalidInvitationError: 邀请码不存在或已被使用。
+            sqlite3.IntegrityError: SQLite 用户唯一键冲突。
+            pymysql.IntegrityError: MariaDB 用户唯一键冲突。
+        """
+        code_hash = hashlib.sha256(invite_code.encode("utf-8")).hexdigest()
+        used_at = datetime.now(timezone.utc).isoformat()
+        # 同一连接的写事务必须串行，避免线程交叉提交或回滚彼此操作。
+        with self._write_lock:
+            with self.connection:
+                cursor = self.connection.execute(
+                    """
+                    INSERT INTO users (username, password_hash, role, token_version, created_at)
+                    VALUES (?, ?, 'user', 1, ?)
+                    """,
+                    (username, hash_password(password), used_at),
+                )
+                user_id = int(cursor.lastrowid or 0)
+                invitation_cursor = self.connection.execute(
+                    """
+                    UPDATE invitations
+                    SET used_by_user_id = ?, used_at = ?
+                    WHERE code_hash = ? AND used_at IS NULL
+                    """,
+                    (user_id, used_at, code_hash),
+                )
+                if invitation_cursor.rowcount != 1:
+                    raise InvalidInvitationError("邀请码无效或已使用，请获取新的邀请码后重试")
+        return user_id
 
     def get_user(self, username: str) -> Optional[User]:
         """按登录名查询用户。
@@ -389,11 +534,12 @@ class Database:
         Args:
             username: 登录名。
         """
-        with self.connection:
-            self.connection.execute(
-                "UPDATE users SET token_version = token_version + 1 WHERE username = ?",
-                (username,),
-            )
+        with self._write_lock:
+            with self.connection:
+                self.connection.execute(
+                    "UPDATE users SET token_version = token_version + 1 WHERE username = ?",
+                    (username,),
+                )
 
     # ---------- 开奖记录 ----------
 
@@ -450,8 +596,9 @@ class Database:
                     source = excluded.source,
                     fetched_at = excluded.fetched_at
             """
-        with self.connection:
-            self.connection.executemany(conflict_sql, payload)
+        with self._write_lock:
+            with self.connection:
+                self.connection.executemany(conflict_sql, payload)
         return len(payload)
 
     def count_draws(self, game: str) -> int:
@@ -574,18 +721,19 @@ class Database:
             key: 配置键。
             value: 配置值。
         """
-        with self.connection:
-            if self.dialect == "mariadb":
-                upsert = (
-                    "INSERT INTO settings (cfg_key, value) VALUES (?, ?) "
-                    "ON DUPLICATE KEY UPDATE value = VALUES(value)"
-                )
-            else:
-                upsert = (
-                    "INSERT INTO settings (cfg_key, value) VALUES (?, ?) "
-                    "ON CONFLICT(cfg_key) DO UPDATE SET value = excluded.value"
-                )
-            self.connection.execute(upsert, (key, value))
+        with self._write_lock:
+            with self.connection:
+                if self.dialect == "mariadb":
+                    upsert = (
+                        "INSERT INTO settings (cfg_key, value) VALUES (?, ?) "
+                        "ON DUPLICATE KEY UPDATE value = VALUES(value)"
+                    )
+                else:
+                    upsert = (
+                        "INSERT INTO settings (cfg_key, value) VALUES (?, ?) "
+                        "ON CONFLICT(cfg_key) DO UPDATE SET value = excluded.value"
+                    )
+                self.connection.execute(upsert, (key, value))
 
     def ensure_secret(self) -> str:
         """获取令牌签名密钥，不存在时生成并持久化。
@@ -611,6 +759,10 @@ def create_database(settings: Any) -> Database:
         数据库实例。
     """
     if getattr(settings, "db_type", "sqlite") == "mariadb":
+        if not settings.db_password:
+            # 提前区分配置未加载与数据库拒绝认证，避免无效重启。
+            logger.error("数据库启动失败：未设置 DB_PASSWORD，请加载服务端运行配置后重启")
+            raise RuntimeError("未设置 DB_PASSWORD，请加载服务端运行配置后重启")
         return Database(
             settings.db_name,
             dialect="mariadb",

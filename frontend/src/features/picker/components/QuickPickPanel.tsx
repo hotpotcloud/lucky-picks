@@ -2,6 +2,9 @@ import { Button, InputNumber, Radio, Space, Typography } from 'antd';
 import { QUICK_PICK_MAX, QUICK_PICK_MIN } from '../constants';
 import { STRATEGY_LABELS } from '../labels';
 import type { QuickStrategy } from '../types';
+import type { BallArea } from '../types';
+import type { QuickConstraints } from '../constraints';
+import QuickConstraintsPanel from './QuickConstraintsPanel';
 
 /** 机选参数面板属性。 */
 interface QuickPickPanelProps {
@@ -9,10 +12,16 @@ interface QuickPickPanelProps {
   count: number;
   /** 机选策略。 */
   strategy: QuickStrategy;
+  /** 当前玩法主区。 */
+  primaryArea: BallArea;
+  /** 可选手动条件。 */
+  constraints: QuickConstraints;
   /** 注数变化回调。 */
   onCountChange: (value: number) => void;
   /** 策略变化回调。 */
   onStrategyChange: (value: QuickStrategy) => void;
+  /** 手动条件变化回调。 */
+  onConstraintsChange: (value: QuickConstraints) => void;
   /** 机选填充回调。 */
   onQuickFill: () => void;
 }
@@ -24,8 +33,11 @@ interface QuickPickPanelProps {
 const QuickPickPanel = ({
   count,
   strategy,
+  primaryArea,
+  constraints,
   onCountChange,
   onStrategyChange,
+  onConstraintsChange,
   onQuickFill,
 }: QuickPickPanelProps) => (
   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
@@ -62,6 +74,11 @@ const QuickPickPanel = ({
         ]}
       />
     </div>
+    <QuickConstraintsPanel
+      primaryArea={primaryArea}
+      value={constraints}
+      onChange={onConstraintsChange}
+    />
   </Space>
 );
 

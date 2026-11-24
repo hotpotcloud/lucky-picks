@@ -11,6 +11,14 @@ export default defineConfig(({ mode }) => ({
   // GitHub Pages 项目页部署在子路径下，本地开发保持根路径。
   // 服务器独立部署时设置 VITE_BASE_PATH=/；GitHub Pages 保持 /lucky-picks/
   base: process.env.VITE_BASE_PATH ?? (mode === 'production' ? '/lucky-picks/' : '/'),
+  server: {
+    // 本地开发保持浏览器同源请求，由 Vite 转发到固定本机后端端口。
+    proxy: {
+      '/api': {
+        target: `http://127.0.0.1:${process.env.SERVICE_PORT ?? '1688'}`,
+      },
+    },
+  },
   build: {
     // React 与 Ant Design 体积较大，单独分包便于浏览器长期缓存
     chunkSizeWarningLimit: 900,

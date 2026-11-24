@@ -1,7 +1,7 @@
-/** 开奖数据加载与本地统计（静态快照优先，后端可用时优先走接口）。 */
+/** 开奖数据加载与本地统计。 */
 
 import { useEffect, useState } from 'react';
-import { apiGet, hasBackend } from '../../api/client';
+import { apiGet } from '../../api/client';
 import type { DrawDto } from '../../api/types';
 
 /** 归一化的开奖记录。 */
@@ -27,40 +27,24 @@ export const useDraws = (game: string) => {
     const load = async () => {
       setLoading(true);
       setError('');
-      // 后端可用时先请求接口
-      if (hasBackend()) {
-        try {
-          const page = await apiGet<{ items: DrawDto[] }>(
-            `/api/v1/draws/${game}?limit=100&offset=0`,
-          );
-          if (!cancelled) {
-            setDraws(
-              page.items.map((item) => ({
-                issue: item.issue,
-                date: item.date,
-                main: item.numbers.red ?? item.numbers.front ?? [],
-                extra: item.numbers.blue ?? item.numbers.back ?? [],
-              })),
-            );
-            setSource('后端接口');
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // 接口失败时回退到静态快照
-        }
-      }
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}data/${game}.json`);
-        if (!response.ok) {
-          throw new Error('静态数据不存在');
-        }
-        const payload = (await response.json()) as {
-          draws: Array<{ issue: string; date: string; main: number[]; extra: number[] }>;
-        };
+        const page = await apiGet<{ items: DrawDto[] }>(
+          `/api/v1/draws/${game}?limit=100&offset=0`,
+        );
         if (!cancelled) {
-          setDraws(payload.draws.slice().reverse());
-          setSource('本地快照');
+          setDraws(
+            page.items
+              .map((draw) => ({
+                issue: draw.issue,
+                date: draw.date,
+                main: draw.numbers.red ?? draw.numbers.front ?? [],
+                extra: draw.numbers.blue ?? draw.numbers.back ?? [],
+              }))
+              .sort((left, right) =>
+                left.issue.localeCompare(right.issue, 'en', { numeric: true }),
+              ),
+          );
+          setSource('后端接口');
         }
       } catch (cause) {
         if (!cancelled) {

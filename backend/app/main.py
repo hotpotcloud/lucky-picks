@@ -145,7 +145,11 @@ async def handle_validation_error(request: Request, exc: RequestValidationError)
     """
     return JSONResponse(
         status_code=422,
-        content=error_response(42200, "请求参数不合法", request, {"errors": exc.errors()}),
+        # 校验详情只保留字段位置和原因，避免回显密码及不可 JSON 序列化的异常上下文。
+        content=error_response(42200, "请求参数不合法", request, {"errors": [
+            {key: item[key] for key in ("loc", "msg", "type") if key in item}
+            for item in exc.errors()
+        ]}),
     )
 
 

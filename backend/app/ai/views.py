@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from app.ai.service import AiAnalysisUnavailable, ai_configured, analyze
 from app.common.enums import GameId
 from app.common.exceptions import GameNotFound
+from app.common.rate_limit import limit_analysis
 from app.common.response import error_response, ok_response
 from app.db.database import Database
 from app.dependencies import get_current_user, get_database
@@ -33,7 +34,7 @@ def configured(
     return ok_response({"available": ai_configured()}, request)
 
 
-@router.get("/analysis/{game}", summary="AI 统计分析", description="基于历史统计生成中文分析")
+@router.get("/analysis/{game}", summary="AI 统计分析", description="基于历史统计生成中文分析", dependencies=[Depends(limit_analysis)])
 def ai_analysis(
     game: str,
     request: Request,

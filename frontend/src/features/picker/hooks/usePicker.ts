@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { apiPost } from '../../../api/client';
+import type { RecommendationDto } from '../../../api/types';
 import {
   MAX_HISTORY_RECORDS,
   MAX_HISTORY_TICKETS,
@@ -11,7 +13,6 @@ import {
   calculateBankerSelection,
   calculateMultipleSelection,
   generateBankerTickets,
-  generateQuickTickets,
 } from '../generator';
 import { formatTicketText, formatTicketsText } from '../format';
 import type {
@@ -22,7 +23,11 @@ import type {
   SelectionMode,
   TicketNumbers,
 } from '../types';
-import { SelectionError } from '../types';
+import {
+  buildRecommendationConstraints,
+  createEmptyQuickConstraints,
+} from '../constraints';
+import type { QuickConstraints } from '../constraints';
 import {
   isHistoryAvailable,
   loadHistory,
@@ -76,6 +81,11 @@ export const usePicker = () => {
   const [mode, setModeState] = useState<SelectionMode>('quick');
   const [quickCount, setQuickCountState] = useState(1);
   const [strategy, setStrategyState] = useState<QuickStrategy>('random');
+  const [quickConstraints, setQuickConstraintsState] = useState<QuickConstraints>(
+    createEmptyQuickConstraints,
+  );
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string>();
   const [selections, setSelections] = useState<TicketNumbers>({});
   const [bankerState, setBankerState] = useState<BankerState>({ banker: [], drag: [] });
   const [result, setResult] = useState<GeneratedResult | null>(null);
@@ -97,21 +107,27 @@ export const usePicker = () => {
     [game, bankerState, selections],
   );
 
-  /** 机选参数校验：注数必须是 1–10 的整数。 */
+  const constraintInfo = useMemo(
+    () => buildRecommendationConstraints(quickConstraints, game.areas[0]),
+    [game, quickConstraints],
+  );
+
+  /** 机选参数校验：注数与手动条件都必须合法。 */
   const quickInfo = useMemo(() => {
-    const valid =
+    const isCountValid =
       Number.isInteger(quickCount) &&
       quickCount >= QUICK_PICK_MIN &&
       quickCount <= QUICK_PICK_MAX;
+    const valid = isCountValid && constraintInfo.valid;
     return {
       valid,
-      error: valid
-        ? undefined
-        : `机选注数必须是 ${QUICK_PICK_MIN}–${QUICK_PICK_MAX} 的整数`,
+      error: !isCountValid
+        ? `机选注数必须是 ${QUICK_PICK_MIN}–${QUICK_PICK_MAX} 的整数`
+        : constraintInfo.error,
       combinations: valid ? quickCount : 0,
       amount: valid ? quickCount * TICKET_PRICE : 0,
     };
-  }, [quickCount]);
+  }, [quickCount, constraintInfo]);
 
   /** 当前模式的参数校验信息，用于展示注数与金额。 */
   const activeInfo = useMemo(() => {
@@ -129,25 +145,36 @@ export const usePicker = () => {
     setGameId(id);
     setModeState('quick');
     setQuickCountState(1);
+    setQuickConstraintsState(createEmptyQuickConstraints());
     setSelections({});
     setBankerState({ banker: [], drag: [] });
     setResult(null);
+    setGenerateError(undefined);
   }, []);
 
   /** 切换模式：保留已选号码，但清空旧结果。 */
   const setMode = useCallback((nextMode: SelectionMode) => {
     setModeState(nextMode);
     setResult(null);
+    setGenerateError(undefined);
   }, []);
 
   const setQuickCount = useCallback((count: number) => {
     setQuickCountState(count);
     setResult(null);
+    setGenerateError(undefined);
   }, []);
 
   const setStrategy = useCallback((nextStrategy: QuickStrategy) => {
     setStrategyState(nextStrategy);
     setResult(null);
+    setGenerateError(undefined);
+  }, []);
+
+  const setQuickConstraints = useCallback((values: QuickConstraints) => {
+    setQuickConstraintsState(values);
+    setResult(null);
+    setGenerateError(undefined);
   }, []);
 
   /** 复式与胆拖副区共用：切换某个号码的选中状态。 */
@@ -220,16 +247,65 @@ export const usePicker = () => {
     setResult(null);
   }, []);
 
-  /** 按当前模式生成号码。 */
-  const generate = useCallback((): ActionResult => {
+  /** 将推荐接口的一注转换为页面号码结构。 */
+  const mapRecommendationTickets = useCallback(
+    (recommendation: RecommendationDto): TicketNumbers[] =>
+      recommendation.bets.map((bet) =>
+        Object.fromEntries(
+          bet.areas.map((area) => [area.key, area.numbers]),
+        ) as TicketNumbers,
+      ),
+    [],
+  );
+
+  /** 按当前模式生成号码。单式调用真实推荐接口，复式与胆拖保留本地逻辑。 */
+  const generate = useCallback(async (): Promise<ActionResult> => {
+    setGenerateError(undefined);
     try {
       if (mode === 'quick') {
-        const tickets = generateQuickTickets(game, quickCount, strategy);
+        const constraintResult = buildRecommendationConstraints(
+          quickConstraints,
+          game.areas[0],
+        );
+        if (!constraintResult.valid) {
+          setGenerateError(constraintResult.error);
+          return { ok: false, error: constraintResult.error };
+        }
+        setIsGenerating(true);
+        const payload = {
+          game: game.id,
+          mode: 'single',
+          strategy,
+          window: 100,
+          count: quickCount,
+          ...(constraintResult.constraints
+            ? { constraints: constraintResult.constraints }
+            : {}),
+        };
+        const recommendation = await apiPost<RecommendationDto>(
+          '/api/v1/recommendations',
+          payload,
+        );
+        const tickets = mapRecommendationTickets(recommendation);
+        if (tickets.length !== quickCount) {
+          const error = `后端仅生成 ${tickets.length}/${quickCount} 注，请放宽条件后重试`;
+          setGenerateError(error);
+          return {
+            ok: false,
+            error,
+          };
+        }
         setResult({
           mode,
           tickets,
-          combinations: quickCount,
-          amount: quickCount * TICKET_PRICE,
+          combinations: recommendation.bets.reduce(
+            (total, bet) => total + bet.combinations,
+            0,
+          ),
+          amount: recommendation.bets.reduce(
+            (total, bet) => total + bet.totalAmount,
+            0,
+          ),
         });
         return { ok: true };
       }
@@ -262,10 +338,22 @@ export const usePicker = () => {
       return { ok: true };
     } catch (error) {
       const message =
-        error instanceof SelectionError ? error.message : '生成失败，请稍后重试';
+        error instanceof Error ? error.message : '生成失败，请稍后重试';
+      setGenerateError(message);
       return { ok: false, error: message };
+    } finally {
+      setIsGenerating(false);
     }
-  }, [mode, game, quickCount, strategy, selections, bankerState]);
+  }, [
+    mode,
+    game,
+    quickCount,
+    strategy,
+    quickConstraints,
+    mapRecommendationTickets,
+    selections,
+    bankerState,
+  ]);
 
   /** 复制当前结果。 */
   const copyResult = useCallback(async (): Promise<ActionResult> => {
@@ -350,6 +438,9 @@ export const usePicker = () => {
     mode,
     quickCount,
     strategy,
+    quickConstraints,
+    isGenerating,
+    generateError,
     selections,
     bankerNumbers: bankerState.banker,
     dragNumbers: bankerState.drag,
@@ -363,6 +454,7 @@ export const usePicker = () => {
     setMode,
     setQuickCount,
     setStrategy,
+    setQuickConstraints,
     quickFill,
     toggleSelection,
     cycleBankerNumber,

@@ -1,18 +1,15 @@
 /**
  * API 客户端：携带登录令牌、统一错误映射。
- * VITE_API_BASE_URL 未配置时视为「离线模式」，由数据层回退到静态快照。
+ * VITE_API_BASE_URL 未配置时默认请求当前站点同源接口。
  */
 
 import type { AiAnalysisDto, Envelope, LoginResponse } from './types';
 
-/** 后端服务地址（未配置则为空）。 */
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+/** 后端服务地址（未配置则使用同源相对路径）。 */
+const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '';
 
 /** 本地保存令牌的键。 */
 const TOKEN_KEY = 'lucky-picks:token';
-
-/** 是否配置了后端服务。 */
-export const hasBackend = (): boolean => API_BASE.length > 0;
 
 /** 读取登录令牌。 */
 export const getToken = (): string | null => window.localStorage.getItem(TOKEN_KEY);
@@ -39,30 +36,71 @@ export class UnauthorizedError extends Error {
 }
 
 /**
+ * 解析统一响应，代理或服务异常返回 HTML 时给出可操作提示。
+ * @param response HTTP 响应
+ */
+const parseEnvelope = async <T>(response: Response): Promise<Envelope<T>> => {
+  const responseText = await response.text();
+  try {
+    return JSON.parse(responseText) as Envelope<T>;
+  } catch (cause) {
+    if (response.status >= 500) {
+      throw new Error('应用同源 API 不可用，请检查后端服务或代理配置', { cause });
+    }
+    throw new Error('接口返回了无效 JSON，请检查后端服务', { cause });
+  }
+};
+
+/**
+ * 调用公开认证接口。
+ * @param path 接口路径
+ * @param username 账号
+ * @param password 密码
+ */
+const authRequest = async (
+  path: string,
+  payload: Record<string, string>,
+): Promise<LoginResponse> => {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const body = await parseEnvelope<LoginResponse>(response);
+  if (!response.ok || body.code !== 0) {
+    throw new Error(body.message || '认证失败');
+  }
+  return body.data;
+};
+
+/**
  * 登录请求。
  * @param username 账号
  * @param password 密码
  * @returns 登录响应
  */
-export const login = async (username: string, password: string): Promise<LoginResponse> => {
-  const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-  const body = (await response.json()) as Envelope<LoginResponse>;
-  if (!response.ok || body.code !== 0) {
-    throw new Error(body.message || '登录失败');
-  }
-  return body.data;
-};
+export const login = (username: string, password: string): Promise<LoginResponse> =>
+  authRequest('/api/v1/auth/login', { username, password });
+
+/**
+ * 注册普通用户并直接获取登录令牌。
+ * @param username 账号
+ * @param password 密码
+ * @param inviteCode 邀请码
+ */
+export const register = (
+  username: string,
+  password: string,
+  inviteCode: string,
+): Promise<LoginResponse> =>
+  authRequest('/api/v1/auth/register', { username, password, inviteCode });
 
 /**
  * 退出登录（服务端令牌版本递增）。
  */
 export const logout = async (): Promise<void> => {
   const token = getToken();
-  if (!token || !API_BASE) {
+  if (!token) {
     return;
   }
   try {
@@ -89,9 +127,10 @@ export const apiGet = async <T>(path: string): Promise<T> => {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (response.status === 401) {
+    clearToken();
     throw new UnauthorizedError();
   }
-  const body = (await response.json()) as Envelope<T>;
+  const body = await parseEnvelope<T>(response);
   if (!response.ok || body.code !== 0) {
     throw new Error(body.message || '请求失败');
   }
@@ -118,14 +157,19 @@ export const apiPost = async <T>(path: string, payload: unknown): Promise<T> => 
     body: JSON.stringify(payload),
   });
   if (response.status === 401) {
+    clearToken();
     throw new UnauthorizedError();
   }
-  const body = (await response.json()) as Envelope<T>;
+  const body = await parseEnvelope<T>(response);
   if (!response.ok || body.code !== 0) {
     throw new Error(body.message || '请求失败');
   }
   return body.data;
 };
+
+/** 查询当前登录用户。 */
+export const fetchCurrentUser = async (): Promise<LoginResponse['user']> =>
+  apiGet<LoginResponse['user']>('/api/v1/auth/me');
 
 /**
  * 查询服务端 AI 是否配置。

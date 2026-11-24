@@ -11,8 +11,9 @@ import math
 import random
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from app.common.exceptions import InvalidSelection
 from app.db.database import DrawRow
-from app.games.config import GameRule
+from app.games.config import AreaRule, GameRule
 from app.games.rules import AreaSelection, validate_bet
 from app.schemas import ConstraintsIn
 from app.stats.service import compute_statistics
@@ -26,6 +27,13 @@ TEMPERATURE = 0.6
 
 # 策略权重：特征 → 权重。
 STRATEGY_WEIGHTS: Dict[str, Dict[str, float]] = {
+    "random": {
+        "freqZ": 0.0,
+        "omissionRatio": 0.0,
+        "recentDelta": 0.0,
+        "posterior": 0.0,
+        "balance": 0.0,
+    },
     "balanced": {
         "freqZ": 0.0,
         "omissionRatio": 0.0,
@@ -175,7 +183,7 @@ def _weighted_sample(
 
 
 def _constraint_ok(
-    numbers: Sequence[int], area: GameRule, constraints: Optional[ConstraintsIn]
+    numbers: Sequence[int], area: AreaRule, constraints: Optional[ConstraintsIn]
 ) -> bool:
     """检查候选号码是否满足约束。
 
@@ -226,7 +234,77 @@ def _constraint_ok(
             for bounds_count in zones
         ):
             return False
+    if constraints.zoneCounts is not None and zones != constraints.zoneCounts:
+        return False
     return True
+
+
+def _selection_count_bounds(area: AreaRule, matching_count: int) -> Tuple[int, int]:
+    """计算某类号码在一注中的可实现数量范围。"""
+    other_count = area.max - area.min + 1 - matching_count
+    return max(0, area.base_count - other_count), min(area.base_count, matching_count)
+
+
+def _validate_count_constraint(
+    label: str,
+    bounds: Optional[List[int]],
+    feasible: Tuple[int, int],
+) -> None:
+    """校验数量区间是否落在玩法可实现范围内。"""
+    if bounds is None:
+        return
+    if bounds[0] < feasible[0] or bounds[1] > feasible[1]:
+        raise InvalidSelection(
+            f"{label}约束超出当前玩法可实现范围 {feasible[0]}–{feasible[1]}，请调整后重试"
+        )
+
+
+def _zone_capacities(area: AreaRule) -> List[int]:
+    """按生成规则计算三区各自可选号码容量。"""
+    zone_size = math.ceil((area.max - area.min + 1) / 3)
+    capacities = [0, 0, 0]
+    for number in range(area.min, area.max + 1):
+        capacities[min(2, (number - area.min) // zone_size)] += 1
+    return capacities
+
+
+def _validate_constraints(area: AreaRule, constraints: Optional[ConstraintsIn]) -> None:
+    """按玩法规则校验约束总量与理论可实现范围。"""
+    if constraints is None:
+        return
+
+    odd_available = sum(number % 2 for number in range(area.min, area.max + 1))
+    big_threshold = math.ceil((area.min + area.max) / 2)
+    big_available = area.max - big_threshold + 1
+    _validate_count_constraint(
+        "奇偶数量",
+        constraints.oddEven,
+        _selection_count_bounds(area, odd_available),
+    )
+    _validate_count_constraint(
+        "大小数量",
+        constraints.bigSmall,
+        _selection_count_bounds(area, big_available),
+    )
+
+    minimum_sum = sum(range(area.min, area.min + area.base_count))
+    maximum_sum = sum(range(area.max - area.base_count + 1, area.max + 1))
+    if constraints.sumRange is not None and (
+        constraints.sumRange[0] < minimum_sum or constraints.sumRange[1] > maximum_sum
+    ):
+        raise InvalidSelection(
+            f"和值范围超出当前玩法可实现范围 {minimum_sum}–{maximum_sum}，请调整后重试"
+        )
+
+    if constraints.zoneCounts is not None:
+        if sum(constraints.zoneCounts) != area.base_count:
+            raise InvalidSelection(f"三区数量总和必须为 {area.base_count}，请调整后重试")
+        capacities = _zone_capacities(area)
+        for index, count in enumerate(constraints.zoneCounts):
+            if count > capacities[index]:
+                raise InvalidSelection(
+                    f"第 {index + 1} 区最多可选 {capacities[index]} 个号码，请调整后重试"
+                )
 
 
 def _explain(
@@ -299,6 +377,7 @@ def recommend(
         raise ValueError("数据不足，无法生成推荐")
 
     area = game.areas[0]
+    _validate_constraints(area, constraints)
     weights = STRATEGY_WEIGHTS.get(strategy, STRATEGY_WEIGHTS["balanced"])
     features = _features(stats, game, draws)
     scores = {int(number): _score(values, weights) for number, values in features.items()}
@@ -310,19 +389,32 @@ def recommend(
         for _ in range(count):
             candidate = _build_single(area, scores, rng, constraints, used, features, weights)
             if candidate is None:
-                break
+                raise InvalidSelection(
+                    f"仅生成 {len(tickets)}/{count} 注满足条件的号码，请放宽手动条件后重试"
+                )
             used.add(tuple(candidate))
+            areas_selection = [
+                AreaSelection(key=area.key, numbers=candidate, banker=[]),
+                *_sample_additional_areas(game, rng),
+            ]
+            validation = validate_bet(
+                game.id.value,
+                "single",
+                areas_selection,
+                multiplier=multiplier,
+                additional=additional,
+            )
             tickets.append(
                 {
                     "mode": "single",
                     "areas": [
-                        {"key": area.key, "numbers": candidate, "banker": []},
+                        {"key": item.key, "numbers": item.numbers, "banker": item.banker}
+                        for item in validation.normalized_areas
                     ],
-                    "combinations": 1,
-                    "baseAmount": game.price * multiplier,
-                    "additionalAmount": (game.additional_price * multiplier if additional else 0),
-                    "totalAmount": (game.price + (game.additional_price if additional else 0))
-                    * multiplier,
+                    "combinations": validation.combinations,
+                    "baseAmount": validation.base_amount,
+                    "additionalAmount": validation.additional_amount,
+                    "totalAmount": validation.total_amount,
                     "explanation": _explain(candidate, features, weights),
                 }
             )
@@ -392,7 +484,7 @@ def recommend(
 
 
 def _build_single(
-    area,
+    area: AreaRule,
     scores: Dict[int, float],
     rng: random.Random,
     constraints: Optional[ConstraintsIn],
@@ -432,14 +524,22 @@ def _build_single(
             best = candidate
             best_score = candidate_score
     if best is None:
-        # 放宽约束再试一次
-        for _ in range(CANDIDATE_POOL):
-            candidate = _weighted_sample(
-                list(range(area.min, area.max + 1)),
-                scores,
-                area.base_count,
-                rng,
-            )
-            if tuple(candidate) not in used:
-                return candidate
+        return None
     return best
+
+
+def _sample_additional_areas(
+    game: GameRule,
+    rng: random.Random,
+) -> List[AreaSelection]:
+    """为单式推荐生成附加区域号码。"""
+    selections: List[AreaSelection] = []
+    for area in game.areas[1:]:
+        numbers = _weighted_sample(
+            list(range(area.min, area.max + 1)),
+            {},
+            area.base_count,
+            rng,
+        )
+        selections.append(AreaSelection(key=area.key, numbers=numbers, banker=[]))
+    return selections

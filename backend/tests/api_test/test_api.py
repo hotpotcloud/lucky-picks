@@ -81,6 +81,27 @@ def test_recommendation_api(client: TestClient) -> None:
     assert len(response.json()["data"]["bets"]) == 3
 
 
+def test_recommendation_api_reports_impossible_constraints(client: TestClient) -> None:
+    """推荐约束与玩法数量冲突时返回可读业务错误。"""
+    token = login(client)
+    response = client.post(
+        "/api/v1/recommendations",
+        json={
+            "game": "redblue",
+            "mode": "single",
+            "strategy": "random",
+            "window": 100,
+            "count": 1,
+            "constraints": {"zoneCounts": [3, 3, 3]},
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["code"] != 0
+    assert "三区数量" in response.json()["message"]
+
+
 def test_backtest_api(client: TestClient) -> None:
     """回测接口返回汇总与随机基线。"""
     token = login(client)

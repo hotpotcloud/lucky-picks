@@ -1,21 +1,52 @@
 name: Deploy Full Stack
 
-# 推送 main 后通过 SSH 把前后端部署到同一台服务器：
+# CI and Deploy 在 main 成功后，通过 SSH 把同一 SHA 的前后端部署到服务器：
 # - 后端 uvicorn: SERVICE_PORT（默认 1688）
 # - 前端静态站: WEB_PORT（默认 8080）
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/deploy-fullstack.yml'
-  workflow_dispatch:
+  workflow_run:
+    workflows: ['CI and Deploy']
+    types: [completed]
 
 jobs:
   deploy-server:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-fullstack-main
+      cancel-in-progress: false
+    permissions:
+      contents: read
     steps:
+      - name: Checkout verified revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Reject stale main revision
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "${DEPLOY_SHA}"
+
+      # 上传已通过 CI 的脚本，避免服务器先执行仓库中尚未更新的旧脚本。
+      - name: Upload verified deploy script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: backend/scripts/server_deploy.sh
+          target: /tmp/lucky-picks-deploy
+          strip_components: 2
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -25,12 +56,13 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           command_timeout: 30m
           script_stop: true
-          envs: DEPLOY_PATH,SERVICE_PORT,WEB_PORT
+          envs: DEPLOY_PATH,SERVICE_PORT,WEB_PORT,DEPLOY_SHA
           script: |
             set -e
-            export DEPLOY_PATH SERVICE_PORT WEB_PORT
-            bash "${DEPLOY_PATH}/backend/scripts/server_deploy.sh"
+            export DEPLOY_PATH SERVICE_PORT WEB_PORT DEPLOY_SHA
+            bash /tmp/lucky-picks-deploy/server_deploy.sh
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/lucky-picks' }}
           SERVICE_PORT: ${{ secrets.SERVICE_PORT || 1688 }}
           WEB_PORT: ${{ secrets.WEB_PORT || 1689 }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}

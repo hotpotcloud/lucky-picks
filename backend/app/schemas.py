@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -15,6 +15,15 @@ class LoginRequest(BaseModel):
 
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=128)
+
+
+class RegisterRequest(BaseModel):
+    """邀请注册请求：限制账号格式，禁止由客户端指定权限。"""
+
+    model_config = {"extra": "forbid"}
+    username: str = Field(min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    password: str = Field(min_length=8, max_length=128)
+    inviteCode: str = Field(min_length=1, max_length=128)
 
 
 class UserOut(BaseModel):
@@ -95,6 +104,23 @@ class ConstraintsIn(BaseModel):
     spanRange: Optional[List[int]] = None
     maxConsecutive: Optional[int] = None
     zones: Optional[List[int]] = None
+    zoneCounts: Optional[List[int]] = Field(default=None, min_length=3, max_length=3)
+
+    @field_validator("oddEven", "bigSmall", "sumRange", "spanRange", "zones")
+    @classmethod
+    def validate_bounds(cls, value: Optional[List[int]]) -> Optional[List[int]]:
+        """拒绝不完整或倒置区间，避免生成服务索引越界。"""
+        if value is not None and (len(value) != 2 or value[0] < 0 or value[0] > value[1]):
+            raise ValueError("约束区间需为两个非负整数，且下限不大于上限")
+        return value
+
+    @field_validator("zoneCounts")
+    @classmethod
+    def validate_zone_counts(cls, value: Optional[List[int]]) -> Optional[List[int]]:
+        """三区精确数量不得为负数。"""
+        if value is not None and any(count < 0 for count in value):
+            raise ValueError("三区数量必须为非负整数")
+        return value
 
 
 class RecommendationIn(BaseModel):

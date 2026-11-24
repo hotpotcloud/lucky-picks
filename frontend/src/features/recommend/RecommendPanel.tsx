@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Alert, Button, InputNumber, Segmented, Space, Tag, Typography } from 'antd';
-import { apiPost, hasBackend } from '../../api/client';
+import { apiPost } from '../../api/client';
 import type { BetDto, RecommendationDto } from '../../api/types';
 import type { DrawItem } from '../data/useDraws';
 import NumberBall from '../picker/components/NumberBall';
@@ -23,73 +23,10 @@ interface RecommendPanelProps {
 }
 
 /**
- * 生成一注本地号码（离线模式下的简化策略）。
- * @param game 玩法
- * @param draws 历史数据
- * @param strategy 策略
- * @param seed 种子
- */
-const localPick = (game: string, draws: DrawItem[], strategy: string, seed: number): BetDto => {
-  const span = game === 'redblue' ? 33 : 35;
-  const base = game === 'redblue' ? 6 : 5;
-  const recent = draws.slice(-100);
-  const counts = new Map<number, number>();
-  recent.forEach((draw) => draw.main.forEach((number) => counts.set(number, (counts.get(number) ?? 0) + 1)));
-  const weights = Array.from({ length: span }, (_, index) => {
-    const count = counts.get(index + 1) ?? 0;
-    if (strategy === 'hot') {
-      return 1 + count * 0.2;
-    }
-    if (strategy === 'cold' || strategy === 'omission') {
-      return 1 + (12 - Math.min(12, count)) * 0.15;
-    }
-    return 1 + Math.abs(count - (recent.length * base) / span) * -0.05;
-  });
-  let state = seed || 1;
-  const random = () => {
-    state = (state * 1103515245 + 12345) % 2147483648;
-    return state / 2147483648;
-  };
-  const picked: number[] = [];
-  while (picked.length < base) {
-    let total = 0;
-    const candidates = Array.from({ length: span }, (_, index) => index + 1).filter(
-      (number) => !picked.includes(number),
-    );
-    candidates.forEach((number) => {
-      total += weights[number - 1];
-    });
-    let threshold = random() * total;
-    for (const number of candidates) {
-      threshold -= weights[number - 1];
-      if (threshold <= 0) {
-        picked.push(number);
-        break;
-      }
-    }
-  }
-  picked.sort((a, b) => a - b);
-  return {
-    mode: 'single',
-    areas: [{ key: game === 'redblue' ? 'red' : 'front', numbers: picked, banker: [] }],
-    combinations: 1,
-    baseAmount: 2,
-    additionalAmount: 0,
-    totalAmount: 2,
-    explanation: picked.map((number) => ({
-      number,
-      feature: strategy,
-      weight: 1,
-      value: weights[number - 1],
-    })),
-  };
-};
-
-/**
  * 推荐面板。
  * @param props 属性
  */
-const RecommendPanel = ({ game, draws }: RecommendPanelProps) => {
+const RecommendPanel = ({ game }: RecommendPanelProps) => {
   const [strategy, setStrategy] = useState('balanced');
   const [count, setCount] = useState(3);
   const [seed, setSeed] = useState<number | null>(null);
@@ -101,24 +38,15 @@ const RecommendPanel = ({ game, draws }: RecommendPanelProps) => {
     setLoading(true);
     setError('');
     try {
-      if (hasBackend()) {
-        const result = await apiPost<RecommendationDto>('/api/v1/recommendations', {
-          game,
-          mode: 'single',
-          strategy,
-          window: 100,
-          count,
-          seed: seed ?? undefined,
-        });
-        setBets(result.bets);
-      } else {
-        const baseSeed = seed ?? Math.floor(Math.random() * 1000000);
-        setBets(
-          Array.from({ length: count }, (_, index) =>
-            localPick(game, draws, strategy, baseSeed + index),
-          ),
-        );
-      }
+      const result = await apiPost<RecommendationDto>('/api/v1/recommendations', {
+        game,
+        mode: 'single',
+        strategy,
+        window: 100,
+        count,
+        seed: seed ?? undefined,
+      });
+      setBets(result.bets);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '生成失败');
     } finally {
@@ -149,9 +77,6 @@ const RecommendPanel = ({ game, draws }: RecommendPanelProps) => {
         </Button>
       </Space>
       {error && <Alert type="error" showIcon message={error} />}
-      {!hasBackend() && (
-        <Alert type="info" showIcon message="离线模式：使用本地简化策略，结果仅供参考" />
-      )}
       {bets.map((bet, index) => (
         <div className="ticket-row" key={index}>
           <Typography.Text type="secondary">{index + 1}.</Typography.Text>

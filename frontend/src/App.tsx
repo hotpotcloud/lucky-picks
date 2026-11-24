@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, Button, Card, Empty, Segmented, Space, Spin, Tag, Typography } from 'antd';
 import { useAuth } from './features/auth/AuthContext';
 import LoginPage from './features/auth/LoginPage';
+import { InvitePanel } from './features/auth/InvitePanel';
 import GameSwitcher from './features/picker/components/GameSwitcher';
 import QuickPickPanel from './features/picker/components/QuickPickPanel';
 import MultiplePanel from './features/picker/components/MultiplePanel';
@@ -66,8 +67,11 @@ const MainView = () => {
       <QuickPickPanel
         count={picker.quickCount}
         strategy={picker.strategy}
+        primaryArea={picker.game.areas[0]}
+        constraints={picker.quickConstraints}
         onCountChange={picker.setQuickCount}
         onStrategyChange={picker.setStrategy}
+        onConstraintsChange={picker.setQuickConstraints}
         onQuickFill={picker.quickFill}
       />
     );
@@ -83,6 +87,7 @@ const MainView = () => {
           <Space wrap>
             {offline && <Tag color="orange">离线模式</Tag>}
             <Typography.Text>{user?.username}</Typography.Text>
+            <InvitePanel />
             <Button size="small" onClick={() => void signOut()}>
               退出
             </Button>
@@ -113,17 +118,16 @@ const MainView = () => {
                 {picker.mode === 'quick' && !picker.activeInfo.valid && (
                   <Alert type="warning" showIcon message={picker.activeInfo.error} />
                 )}
+                {picker.mode === 'quick' && picker.generateError && (
+                  <Alert type="error" showIcon message={picker.generateError} />
+                )}
                 <Button
                   type="primary"
                   size="large"
                   block
+                  loading={picker.isGenerating}
                   disabled={!picker.activeInfo.valid}
-                  onClick={() => {
-                    const result = picker.generate();
-                    if (!result.ok) {
-                      // 错误消息由面板内联展示
-                    }
-                  }}
+                  onClick={() => void picker.generate()}
                 >
                   生成号码
                 </Button>

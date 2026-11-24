@@ -22,6 +22,84 @@ tags:
   - name: backtest
 
 paths:
+  /api/v1/auth/invitations:
+    post:
+      tags: [auth]
+      summary: 已登录用户生成一次性邀请码
+      operationId: createInvitation
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema: { type: string }
+          description: Bearer 登录令牌
+      responses:
+        '200':
+          description: 数据库保存摘要，明文仅在本次响应中提供
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [code]
+                        properties:
+                          code: { type: string }
+        '401':
+          description: 未登录或令牌无效
+
+  /api/v1/auth/register:
+    post:
+      tags: [auth]
+      summary: 使用邀请码注册普通用户并登录
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, password, inviteCode]
+              properties:
+                username: { type: string, minLength: 3, maxLength: 64, pattern: '^[A-Za-z0-9_-]+$' }
+                password: { type: string, minLength: 8, maxLength: 128, format: password }
+                inviteCode: { type: string, minLength: 1, maxLength: 128, description: 已登录用户生成的一次性邀请码 }
+      responses:
+        '200':
+          description: 邀请核销与注册成功，固定创建普通用户
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: object
+                        required: [token, expiredAt, user]
+                        properties:
+                          token: { type: string }
+                          expiredAt: { type: integer, description: 过期时间戳（秒） }
+                          user:
+                            type: object
+                            required: [id, username, role]
+                            properties:
+                              id: { type: integer }
+                              username: { type: string }
+                              role: { type: string, enum: [user] }
+        '409':
+          description: 账号已存在，code 为 40900
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: 账号格式、密码长度或额外字段不合法
+
   /health:
     get:
       tags: [meta]
@@ -623,6 +701,13 @@ components:
           minItems: 2
           maxItems: 2
           description: [单区最少个数, 单区最多个数]
+
+        zoneCounts:
+          type: array
+          items: { type: integer, minimum: 0 }
+          minItems: 3
+          maxItems: 3
+          description: 一区、二区、三区精确数量，总和须等于主区单注号码数；不设置则使用默认策略
 
     RecommendationRequest:
       type: object

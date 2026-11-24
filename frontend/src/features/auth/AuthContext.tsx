@@ -1,8 +1,17 @@
 /** 登录状态与动作。 */
 
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { clearToken, getToken, hasBackend, login as apiLogin, logout as apiLogout, setToken } from '../../api/client';
+import {
+  clearToken,
+  fetchCurrentUser,
+  getToken,
+  login as apiLogin,
+  logout as apiLogout,
+  register as apiRegister,
+  setToken,
+  UnauthorizedError,
+} from '../../api/client';
 
 /** 登录用户信息。 */
 export interface AuthUser {
@@ -16,72 +25,73 @@ interface AuthValue {
   user: AuthUser | null;
   ready: boolean;
   signIn: (username: string, password: string) => Promise<void>;
+  signUp: (username: string, password: string, inviteCode: string) => Promise<void>;
   signOut: () => Promise<void>;
   offline: boolean;
 }
-
-const OFFLINE_KEY = 'lucky-picks:offline-user';
 
 /** 鉴权上下文。 */
 const AuthContext = createContext<AuthValue | null>(null);
 
 /**
  * 鉴权提供者。
- * 有后端时走真实登录；无后端（静态部署）时以本地演示账号登录，界面会标注离线模式。
+ * 通过真实接口登录、注册，并使用 /auth/me 恢复已有会话。
  * @param props 子节点
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const offline = !hasBackend();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [ready, setReady] = useState(() => !getToken());
 
-  /** 从本地存储恢复登录态（同步初始化，避免首帧闪烁）。 */
-  const initialUser = (): AuthUser | null => {
-    if (offline) {
-      const raw = window.localStorage.getItem(OFFLINE_KEY);
-      if (!raw) {
-        return null;
-      }
-      try {
-        return JSON.parse(raw) as AuthUser;
-      } catch {
-        return null;
-      }
+  useEffect(() => {
+    if (!getToken()) {
+      return;
     }
-    return getToken() ? { id: 0, username: 'admin', role: 'admin' } : null;
-  };
-
-  const [user, setUser] = useState<AuthUser | null>(initialUser);
-  const ready = true;
-
-  const signIn = useCallback(
-    async (username: string, password: string) => {
-      if (offline) {
-        if (username !== 'admin' || password !== '888888') {
-          throw new Error('账号或密码不正确');
+    let cancelled = false;
+    void fetchCurrentUser()
+      .then((currentUser) => {
+        if (!cancelled) {
+          setUser(currentUser);
         }
-        const demo = { id: 0, username, role: 'admin' };
-        window.localStorage.setItem(OFFLINE_KEY, JSON.stringify(demo));
-        setUser(demo);
-        return;
-      }
-      const response = await apiLogin(username, password);
+      })
+      .catch((cause: unknown) => {
+        if (cause instanceof UnauthorizedError) {
+          clearToken();
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReady(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const applyLoginResponse = useCallback(
+    (response: Awaited<ReturnType<typeof apiLogin>>) => {
       setToken(response.token);
       setUser(response.user);
     },
-    [offline],
+    [],
   );
 
+  const signIn = useCallback(async (username: string, password: string) => {
+    applyLoginResponse(await apiLogin(username, password));
+  }, [applyLoginResponse]);
+
+  const signUp = useCallback(async (username: string, password: string, inviteCode: string) => {
+    applyLoginResponse(await apiRegister(username, password, inviteCode));
+  }, [applyLoginResponse]);
+
   const signOut = useCallback(async () => {
-    if (offline) {
-      window.localStorage.removeItem(OFFLINE_KEY);
-    } else {
-      await apiLogout();
-      clearToken();
-    }
+    await apiLogout();
+    clearToken();
     setUser(null);
-  }, [offline]);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, ready, signIn, signOut, offline }}>
+    <AuthContext.Provider value={{ user, ready, signIn, signUp, signOut, offline: false }}>
       {children}
     </AuthContext.Provider>
   );
