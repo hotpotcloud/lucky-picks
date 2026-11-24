@@ -79,6 +79,16 @@
 - 历史开奖 tab 内含走势图分析；已移除免责声明。
 - UI 依据 ui-ux-pro-max 与 high-end-visual-design skill：Ethereal Glass、Double-Bezel、语义 token、去除装饰性循环动画、仅 transform/opacity 动效、prefers-reduced-motion。
 
+## AI 分析接入（2026-11-24 追加）
+
+- 后端新增 `app/ai/`：调用 OpenCode Go 订阅端点，模型**固定为 deepseek-v4.1-flash**（唯一允许模型，不接受请求方覆盖）。
+- Key 从服务器 `/opt/lucky-picks/config/.env` 的 `PWKEY` 读取，不写入代码、不写入日志、不返回给前端；调用需携带 `x-opencode-session` 会话标识。
+- 接口：`GET /api/v1/ai/configured`（配置状态）、`GET /api/v1/ai/analysis/{game}?window=`（生成分析）。
+- 前端「分析」tab 增加 AI 面板：配置状态检测、生成按钮、模型标签、中文解读与风险提示。
+- 提示词约束模型只做历史统计解读，不推荐下一期号码、不承诺中奖；明确说明开奖为独立随机事件。
+- 测试：mock 外部调用，断言模型固定、会话头存在、返回结构正确（后端 19 用例全绿）。
+- 线上实测：登录 → 分析 → 生成 AI 分析，返回真实解读内容，0 控制台错误。
+
 ## 待需求提出方确认
 
 - [ ] FEAT-002 起是否改为**分端开发**（后端/前端独立任务卡与 MR），并更新 AGENTS.md
