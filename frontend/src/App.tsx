@@ -86,6 +86,12 @@ const MainView = () => {
           </Space>
         </Space>
        
+        <Alert
+          type="warning"
+          showIcon
+          message="免责声明"
+          description="开奖结果为独立随机事件，本工具的选号建议仅供娱乐参考，不构成任何投注建议，也不承诺中奖。请理性参与。"
+        />
       </header>
 
       <Segmented block options={TABS} value={tab} onChange={(value) => setTab(String(value))} />

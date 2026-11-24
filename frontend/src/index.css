@@ -1,13 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /**
- * 全局基础样式：只做页面背景、容器、号码球与布局等最小约定，
- * 组件视觉统一交给 Ant Design 5，避免自创设计体系。
+ * 全局基础样式：暗黑科技风 + 磨玻璃态。
+ * Ant Design 使用 darkAlgorithm，这里补充背景、水印与登录特效。
  */
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
   line-height: 1.5;
-  color: rgba(0, 0, 0, 0.88);
-  background-color: #f5f7fa;
+  color: #e2f4ff;
+  background-color: #050b14;
 }
 
 * {
@@ -18,13 +21,48 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(34, 211, 238, 0.12), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.15), transparent 45%),
+    #050b14;
 }
 
 #root {
   min-height: 100vh;
+  position: relative;
 }
 
-/* 页面容器 */
+/* 四角水印：财神 88px，淡色 */
+.watermark-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.watermark-char {
+  position: absolute;
+  font-size: 88px;
+  line-height: 1;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  color: rgba(34, 211, 238, 0.06);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.wm-top-left { top: 8px; left: 12px; }
+.wm-top-right { top: 8px; right: 12px; }
+.wm-bottom-left { bottom: 8px; left: 12px; }
+.wm-bottom-right { bottom: 8px; right: 12px; }
+
+/* 应用容器置于水印之上 */
+.app-shell,
+.login-shell {
+  position: relative;
+  z-index: 1;
+}
+
 .app-shell {
   max-width: 1200px;
   margin: 0 auto;
@@ -35,7 +73,97 @@ body {
   margin-bottom: 16px;
 }
 
-/* 选号网格：自适应列宽，360px 下仍可点击 */
+/* 磨玻璃卡片（AntD Card 叠加） */
+.ant-card {
+  background: rgba(13, 27, 46, 0.55) !important;
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(56, 189, 248, 0.18) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 登录页 */
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.tech-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.5), transparent);
+  animation: scanLine 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  border-color: rgba(34, 211, 238, 0.35) !important;
+  animation: pulseGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(34, 211, 238, 0.2), inset 0 1px 0 rgba(255,255,255,0.05); }
+  50% { box-shadow: 0 0 42px rgba(34, 211, 238, 0.5), inset 0 1px 0 rgba(255,255,255,0.08); }
+}
+
+.login-title {
+  display: block;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  background: linear-gradient(90deg, #22d3ee, #60a5fa, #22d3ee);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine 3s linear infinite;
+}
+
+@keyframes shine {
+  to { background-position: 200% center; }
+}
+
+.login-subtitle {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: rgba(34, 211, 238, 0.6);
+}
+
+.tech-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(34, 211, 238, 0.8);
+}
+.tech-corner-tl { top: 0; left: 0; border-top: 2px solid; border-left: 2px solid; }
+.tech-corner-br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; }
+
+/* 号码网格 */
 .number-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
@@ -52,16 +180,9 @@ body {
   transition: transform 0.12s ease;
 }
 
-.number-button:hover {
-  transform: translateY(-1px);
-}
+.number-button:hover { transform: translateY(-1px); }
+.number-button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
 
-.number-button:focus-visible {
-  outline: 2px solid #1677ff;
-  outline-offset: 2px;
-}
-
-/* 号码球 */
 .number-ball {
   display: inline-flex;
   align-items: center;
@@ -76,76 +197,39 @@ body {
   user-select: none;
 }
 
-.ball-red {
-  background: #cf1322;
-}
+.ball-red { background: #cf1322; }
+.ball-blue { background: #1677ff; }
+.ball-small { width: 26px; height: 26px; font-size: 11px; }
 
-.ball-blue {
-  background: #1677ff;
-}
+.number-button:not(.is-selected) .number-ball { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+.number-button.is-banker .number-ball { background: #d48806; color: #fff; }
+.number-button.is-drag .number-ball { background: #1677ff; color: #fff; }
 
-.ball-small {
-  width: 26px;
-  height: 26px;
-  font-size: 11px;
-}
-
-/* 未选中的号码球显示为灰色 */
-.number-button:not(.is-selected) .number-ball {
-  background: #f0f0f0;
-  color: #595959;
-}
-
-/* 胆拖语义色：胆码金色，拖码蓝色 */
-.number-button.is-banker .number-ball {
-  background: #ad6800;
-  color: #fff;
-}
-
-.number-button.is-drag .number-ball {
-  background: #1677ff;
-  color: #fff;
-}
-
-/* 生成结果行 */
 .ticket-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.14);
 }
 
-.ticket-row:last-child {
-  border-bottom: none;
-}
-
-.ticket-index {
-  min-width: 20px;
-}
-
-.ticket-numbers {
-  display: flex;
-  flex: 1 1 320px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.ticket-area {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-.ticket-analysis {
-  flex: 1 1 240px;
-  justify-content: flex-end;
-}
+.ticket-row:last-child { border-bottom: none; }
+.ticket-index { min-width: 20px; }
+.ticket-numbers { display: flex; flex: 1 1 320px; flex-wrap: wrap; gap: 10px; }
+.ticket-area { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ticket-analysis { flex: 1 1 240px; justify-content: flex-end; }
 
 @media (max-width: 575px) {
-  .ticket-analysis {
-    justify-content: flex-start;
-  }
+  .ticket-analysis { justify-content: flex-start; }
 }
+
+.trend-grid { display: flex; flex-direction: column; gap: 2px; overflow-x: auto; }
+.trend-row { display: flex; align-items: center; gap: 2px; min-width: 760px; }
+.trend-issue { width: 84px; flex: none; font-size: 12px; }
+.trend-cell, .trend-hit {
+  width: 20px; height: 20px; flex: none; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 10px; border-radius: 2px;
+}
+.trend-cell { background: rgba(148, 163, 184, 0.1); }
+.trend-hit { background: #cf1322; color: #fff; }

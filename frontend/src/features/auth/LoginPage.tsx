@@ -1,6 +1,9 @@
-/** 登录页：账号密码表单。 */
+/** 登录页：暗黑科技风。 */
 
-import { Button, Card, Form, Input, Typography, Alert } from 'antd';
+import { Alert } from 'antd';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
 import { useAuth } from './AuthContext';
 
 /**
@@ -10,33 +13,50 @@ const LoginPage = () => {
   const { signIn, offline } = useAuth();
 
   return (
-    <div className="login-shell">
-      <Card className="login-card" title={<Typography.Title level={3}>Lucky Picks</Typography.Title>}>
-        {offline && (
-          <Alert
-            type="info"
-            showIcon
-            message="离线模式"
-            description="当前未配置后端服务，使用本地演示账号登录。"
-          />
-        )}
-        <Form
-          layout="vertical"
-          initialValues={{ username: 'admin', password: '888888' }}
-          onFinish={async (values) => {
-            await signIn(String(values.username), String(values.password));
-          }}
-        >
-          <Form.Item label="账号" name="username" rules={[{ required: true, message: '请输入账号' }]}>
-            <Input autoComplete="username" />
-          </Form.Item>
-          <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
-            <Input.Password autoComplete="current-password" />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" block size="large">
-            登录
-          </Button>
-        </Form>
+    <div className="login-shell tech-bg">
+      <div className="scanline" aria-hidden="true" />
+      <Card className="login-card relative overflow-hidden">
+        <div className="tech-corner tech-corner-tl" aria-hidden="true" />
+        <div className="tech-corner tech-corner-br" aria-hidden="true" />
+        <CardHeader>
+          <CardTitle className="text-center">
+            <span className="login-title">Lucky Picks</span>
+            <span className="login-subtitle">SECURE ACCESS · 终端接入</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {offline && <Alert type="info" showIcon message="离线模式 · 本地演示账号" />}
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = new FormData(event.currentTarget);
+              void signIn(String(form.get('username')), String(form.get('password')));
+            }}
+          >
+            <div className="space-y-1">
+              <label className="text-xs tracking-widest text-cyan-300/80" htmlFor="username">
+                账号 / USER
+              </label>
+              <Input id="username" name="username" defaultValue="admin" autoComplete="username" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs tracking-widest text-cyan-300/80" htmlFor="password">
+                密码 / KEY
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                defaultValue="888888"
+                autoComplete="current-password"
+              />
+            </div>
+            <Button type="submit" size="lg" className="w-full animate-pulse-glow">
+              登 录 · CONNECT
+            </Button>
+          </form>
+        </CardContent>
       </Card>
     </div>
   );
