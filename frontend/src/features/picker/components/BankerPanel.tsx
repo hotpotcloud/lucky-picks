@@ -1,4 +1,4 @@
-import { Alert, Space, Tag, Typography } from 'antd';
+import { Alert, Space, Tag, Tooltip, Typography } from 'antd';
 import type { SelectionInfo } from '../generator';
 import type { AreaKey, GameConfig, TicketNumbers } from '../types';
 import NumberGrid from './NumberGrid';
@@ -54,12 +54,13 @@ const BankerPanel = ({
           {primary.label}（胆码 {banker.length}，拖码 {drag.length}）
         </Typography.Text>
         <Space wrap size={4} style={{ marginLeft: 8 }}>
-          <Tag color="gold">胆码</Tag>
-          <Tag color="blue">拖码</Tag>
+          <Tooltip title={`点击号码切换：未选 → 拖码 → 胆码 → 未选；胆码必须少于 ${primary.count} 个`}>
+            <Tag color="gold">胆码</Tag>
+          </Tooltip>
+          <Tooltip title="未选中的号码可加入拖码">
+            <Tag color="blue">拖码</Tag>
+          </Tooltip>
         </Space>
-        <Typography.Paragraph type="secondary" style={{ margin: '4px 0 0' }}>
-          点击号码切换：未选 → 拖码 → 胆码 → 未选。胆码必须少于 {primary.count} 个。
-        </Typography.Paragraph>
         <div style={{ marginTop: 8 }}>
           <NumberGrid
             area={primary}

@@ -55,9 +55,6 @@ const QuickPickPanel = ({
           { label: STRATEGY_LABELS.balanced, value: 'balanced' },
         ]}
       />
-      <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-        均衡分布会让奇偶、大小、和值与三区分布尽量居中，但不会提高中奖概率。
-      </Typography.Paragraph>
     </div>
   </Space>
 );

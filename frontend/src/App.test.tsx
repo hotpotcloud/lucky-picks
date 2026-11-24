@@ -60,7 +60,9 @@ describe('App 交互（TC-013 / TC-014）', () => {
 
     // 切换后回到机选模式，展示前后玩法规则
     expect(screen.getByText('机选注数')).toBeInTheDocument();
-    expect(screen.getByText(/前区 1–35 选 5/)).toBeInTheDocument();
+    expect(screen.getByText('前后玩法').closest('.ant-segmented-item')).toHaveClass(
+      'ant-segmented-item-selected',
+    );
 
     // 再切回复式，确认旧的红色号码确实被清空
     fireEvent.click(screen.getByRole('radio', { name: '复式' }));

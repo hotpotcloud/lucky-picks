@@ -53,11 +53,7 @@ const TicketList = ({ game, tickets, combinations, analyze = true }: TicketListP
                 <Tag>和值 {analysis.sum}</Tag>
                 <Tag>三区 {analysis.zones}</Tag>
               </Space>
-            ) : (
-              <Typography.Text type="secondary" className="ticket-analysis">
-                复式号码集合，已展开为 {combinations} 注，不展示单注分析
-              </Typography.Text>
-            )}
+            ) : null}
           </div>
         );
       })}

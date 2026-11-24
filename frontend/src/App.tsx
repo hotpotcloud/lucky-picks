@@ -132,12 +132,9 @@ const App = () => {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <Typography.Title level={2} style={{ marginBottom: 4 }}>
-          Lucky Picks · 幸运选号
+        <Typography.Title level={2} style={{ marginBottom: 12 }}>
+          Lucky Picks
         </Typography.Title>
-        <Typography.Paragraph type="secondary">
-          为红蓝玩法、前后玩法生成号码建议，支持机选、复式、胆拖与号码分布分析。
-        </Typography.Paragraph>
         <Alert
           type="warning"
           showIcon
@@ -209,7 +206,7 @@ const App = () => {
                 />
               </Space>
             ) : (
-              <Empty description="尚未生成号码，请在左侧设置参数后点击「生成号码」" />
+              <Empty description="尚未生成号码" />
             )}
           </Card>
         </Col>
@@ -245,12 +242,8 @@ const App = () => {
               type="warning"
               showIcon
               message="本地存储不可用"
-              description="当前浏览器禁用了本地存储，历史记录功能已停用，选号与生成不受影响。"
             />
           )}
-          <Typography.Text type="secondary">
-            历史记录仅保存在当前浏览器，不会上传到任何服务器。
-          </Typography.Text>
           <HistoryList
             records={picker.history}
             onCopy={handleCopyRecord}
@@ -265,12 +258,6 @@ const App = () => {
           />
         </Space>
       </Card>
-
-      <footer className="app-footer">
-        <Typography.Text type="secondary">
-          Lucky Picks 仅提供随机与均衡选号建议，不销售、不代购、不提供任何中奖承诺。
-        </Typography.Text>
-      </footer>
     </div>
   );
 };

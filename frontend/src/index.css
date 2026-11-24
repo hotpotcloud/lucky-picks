@@ -35,11 +35,6 @@ body {
   margin-bottom: 16px;
 }
 
-.app-footer {
-  margin-top: 24px;
-  text-align: center;
-}
-
 /* 选号网格：自适应列宽，360px 下仍可点击 */
 .number-grid {
   display: grid;

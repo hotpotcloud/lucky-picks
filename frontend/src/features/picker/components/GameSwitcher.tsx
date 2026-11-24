@@ -1,6 +1,6 @@
 import { GAME_CONFIGS, GAME_ORDER } from '../config';
 import type { GameId } from '../types';
-import { Segmented, Typography } from 'antd';
+import { Segmented } from 'antd';
 
 /** 玩法切换组件属性。 */
 interface GameSwitcherProps {
@@ -19,8 +19,6 @@ const GameSwitcher = ({ value, onChange }: GameSwitcherProps) => {
     label: GAME_CONFIGS[id].name,
     value: id,
   }));
-  const game = GAME_CONFIGS[value];
-
   return (
     <div>
       <Segmented
@@ -29,9 +27,6 @@ const GameSwitcher = ({ value, onChange }: GameSwitcherProps) => {
         value={value}
         onChange={(next) => onChange(next as GameId)}
       />
-      <Typography.Paragraph type="secondary" style={{ margin: '8px 0 0' }}>
-        {game.description}
-      </Typography.Paragraph>
     </div>
   );
 };
