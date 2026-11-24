@@ -53,3 +53,4 @@ Thumbs.db
 # 测试工具产物
 .playwright-mcp/
 *.png
+!frontend/public/caishen-watermark.png
