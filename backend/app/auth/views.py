@@ -13,7 +13,7 @@ from app.common.rate_limit import limit_registration
 from app.common.response import error_response, ok_response
 from app.db.database import Database, InvalidInvitationError
 from app.dependencies import get_current_user, get_database
-from app.schemas import LoginRequest, LoginResponse, RegisterRequest, UserOut
+from app.schemas import LoginRequest, LoginResponse, RegisterRequest, ResetPasswordRequest, UserOut
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -122,6 +122,58 @@ def login(
         user=UserOut(id=user.id, username=user.username, role=user.role),
     )
     return ok_response(body.model_dump(), request)
+
+
+@router.post(
+    "/users/{username}/password",
+    summary="管理员重置用户密码",
+    description="仅管理员可用；请求只包含密码摘要，不接收明文密码",
+)
+def reset_user_password(
+    username: str,
+    payload: ResetPasswordRequest,
+    request: Request,
+    database: Database = Depends(get_database),
+    current_user: Any = Depends(get_current_user),
+) -> Any:
+    """用摘要重置指定账号密码，并使历史令牌失效。
+
+    Args:
+        username: 目标账号。
+        payload: 仅包含密码摘要的重置请求。
+        request: 请求上下文。
+        database: 数据库依赖。
+        current_user: 当前登录用户，必须是管理员。
+
+    Returns:
+        统一响应；非管理员返回 403，账号不存在返回 404。
+    """
+    if current_user.role != "admin":
+        logger.warning(
+            "密码重置被拒绝：operator={} target={} reason=not_admin",
+            current_user.username,
+            username,
+        )
+        return JSONResponse(
+            status_code=403,
+            content=error_response(40300, "仅管理员可以重置密码", request),
+        )
+    target = database.get_user(username.strip())
+    if target is None:
+        return JSONResponse(
+            status_code=404,
+            content=error_response(40400, "账号不存在", request),
+        )
+    database.set_password_digest(target.username, payload.passwordDigest)
+    database.bump_token_version(target.username)
+    # 日志只记录操作人、目标账号与结果，不记录摘要或密码。
+    logger.info(
+        "密码重置成功：operator={} target={} user_id={}",
+        current_user.username,
+        target.username,
+        target.id,
+    )
+    return ok_response({"reset": True}, request)
 
 
 @router.get("/me", summary="当前用户", description="根据令牌返回当前登录用户")

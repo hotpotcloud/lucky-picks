@@ -58,6 +58,39 @@ def test_login_rejects_plaintext_password(client: TestClient) -> None:
     assert response.status_code == 422
 
 
+def test_admin_resets_password_with_digest(client: TestClient, database: Database) -> None:
+    """管理员用摘要重置密码后，新密码可登录且旧密码失效。"""
+    database.create_user("legacy", derive_password_digest("legacy", "old-pass"), role="user")
+    token = login(client)
+
+    response = client.post(
+        "/api/v1/auth/users/legacy/password",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"passwordDigest": derive_password_digest("legacy", "new-pass")},
+    )
+    assert response.status_code == 200
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "legacy",
+                "passwordDigest": derive_password_digest("legacy", "new-pass"),
+            },
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "legacy",
+                "passwordDigest": derive_password_digest("legacy", "old-pass"),
+            },
+        ).status_code
+        == 401
+    )
+
+
 def test_draws_requires_auth(client: TestClient) -> None:
     """未登录访问开奖数据返回 401。"""
     assert client.get("/api/v1/draws/redblue").status_code == 401

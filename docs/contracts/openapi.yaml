@@ -80,6 +80,43 @@ paths:
         '401':
           description: 未登录或令牌无效
 
+  /api/v1/auth/users/{username}/password:
+    post:
+      tags: [auth]
+      summary: 管理员用密码摘要重置账号密码
+      operationId: resetUserPassword
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string }
+        - name: Authorization
+          in: header
+          required: true
+          schema: { type: string }
+          description: 管理员 Bearer 登录令牌
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [passwordDigest]
+              properties:
+                passwordDigest:
+                  type: string
+                  minLength: 64
+                  maxLength: 64
+                  pattern: '^[0-9a-f]{64}$'
+      responses:
+        '200':
+          description: 重置成功，目标账号历史令牌失效
+        '403':
+          description: 当前用户不是管理员
+        '404':
+          description: 目标账号不存在
+
   /api/v1/auth/register:
     post:
       tags: [auth]

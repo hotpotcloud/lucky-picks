@@ -41,6 +41,13 @@ class RegisterRequest(BaseModel):
     inviteCode: str = Field(min_length=1, max_length=128)
 
 
+class ResetPasswordRequest(BaseModel):
+    """管理员重置密码请求：只接收摘要，不接收明文。"""
+
+    model_config = {"extra": "forbid"}
+    passwordDigest: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+
+
 class UserOut(BaseModel):
     """用户信息。
 
